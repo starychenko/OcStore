@@ -1,0 +1,83 @@
+# Docker Compose for OpenCart 3 (OcStore) - Optimized for Coolify
+# Deploy via Coolify from private GitHub repository
+
+services:
+  # OpenCart Application (PHP-FPM + Nginx)
+  opencart:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-opencart}
+      - DB_USERNAME=${DB_USERNAME:-opencart}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PREFIX=${DB_PREFIX:-oc_}
+      - OPENCART_URL=${OPENCART_URL:-http://localhost}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+    volumes:
+      - opencart_storage:/var/www/html/system/storage
+      - opencart_images:/var/www/html/image
+      - opencart_downloads:/var/www/html/system/storage/download
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.opencart.loadbalancer.server.port=80"
+
+  # MariaDB Database
+  mariadb:
+    image: mariadb:10.6
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE:-opencart}
+      - MYSQL_USER=${DB_USERNAME:-opencart}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MARIADB_AUTO_UPGRADE=1
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/mariadb/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    # Internal service - not exposed to internet
+
+  # phpMyAdmin (Database Management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PORT=3306
+      - UPLOAD_LIMIT=100M
+      - MEMORY_LIMIT=512M
+      - MAX_EXECUTION_TIME=600
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+
+volumes:
+  opencart_storage:
+    driver: local
+  opencart_images:
+    driver: local
+  opencart_downloads:
+    driver: local
+  mariadb_data:
+    driver: local
