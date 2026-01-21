@@ -17,7 +17,9 @@ RUN apk add --no-cache \
     libxml2 \
     oniguruma \
     unzip \
-    git
+    git \
+    mysql-client \
+    bind-tools
 
 # Install build dependencies and PHP extensions
 RUN apk add --no-cache --virtual .build-deps \
