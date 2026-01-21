@@ -25,10 +25,27 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 # --- Create directories ---
 mkdir -p /var/log/nginx /var/log/php /var/log/supervisor /run/nginx
 
-# Create xdebug log file with proper permissions
-touch /var/log/php/xdebug.log
-chown www-data:www-data /var/log/php/xdebug.log
-chmod 666 /var/log/php/xdebug.log
+# --- Xdebug toggle (disabled by default for JIT compatibility) ---
+XDEBUG_ENABLED="${XDEBUG_ENABLED:-0}"
+XDEBUG_INI="/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini"
+
+if [ "$XDEBUG_ENABLED" = "1" ] || [ "$XDEBUG_ENABLED" = "true" ]; then
+    echo "[INFO] Xdebug ENABLED (JIT will be disabled)"
+    # Ensure xdebug is enabled
+    if [ -f "${XDEBUG_INI}.disabled" ]; then
+        mv "${XDEBUG_INI}.disabled" "$XDEBUG_INI"
+    fi
+    # Create xdebug log file
+    touch /var/log/php/xdebug.log
+    chown www-data:www-data /var/log/php/xdebug.log
+    chmod 666 /var/log/php/xdebug.log
+else
+    echo "[INFO] Xdebug DISABLED (JIT enabled for performance)"
+    # Disable xdebug by renaming config
+    if [ -f "$XDEBUG_INI" ]; then
+        mv "$XDEBUG_INI" "${XDEBUG_INI}.disabled"
+    fi
+fi
 
 # Storage directories (secure location outside webroot)
 STORAGE_DIRS="cache download logs modification session upload"
