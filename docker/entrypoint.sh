@@ -67,13 +67,31 @@ for dir in $STORAGE_DIRS; do
     chmod -R 777 "$dir"
 done
 
-# Copy vendor files to new storage location if they don't exist
-# This is needed when OpenCart moves storage outside webroot
+# Auto-migrate storage to /var/www/storage/ (OpenCart security recommendation)
+# This runs on first startup when volume is empty
 if [ -d "/var/www/html/system/storage/vendor" ] && [ ! -d "/var/www/storage/vendor" ]; then
-    echo "Copying vendor files to /var/www/storage/vendor..."
-    cp -r /var/www/html/system/storage/vendor /var/www/storage/
-    chown -R www-data:www-data /var/www/storage/vendor
+    echo "=== Auto-migrating storage to /var/www/storage/ ==="
+    echo "Copying all storage files..."
+    cp -r /var/www/html/system/storage/* /var/www/storage/
+    chown -R www-data:www-data /var/www/storage
+    chmod -R 777 /var/www/storage
     chmod -R 755 /var/www/storage/vendor
+    echo "Storage migration complete!"
+fi
+
+# Auto-update config.php to use /var/www/storage/ after OpenCart installation
+# This ensures storage path is correct even after container restart
+if [ -f "/var/www/html/config.php" ] && grep -q "DB_HOSTNAME" /var/www/html/config.php 2>/dev/null; then
+    # OpenCart is installed, ensure storage path is correct
+    if grep -q "DIR_SYSTEM . 'storage/'" /var/www/html/config.php 2>/dev/null; then
+        echo "=== Updating config.php storage path ==="
+        sed -i "s|define('DIR_STORAGE', DIR_SYSTEM . 'storage/')|define('DIR_STORAGE', '/var/www/storage/')|g" /var/www/html/config.php
+        echo "Updated /var/www/html/config.php"
+    fi
+    if grep -q "DIR_SYSTEM . 'storage/'" /var/www/html/admin/config.php 2>/dev/null; then
+        sed -i "s|define('DIR_STORAGE', DIR_SYSTEM . 'storage/')|define('DIR_STORAGE', '/var/www/storage/')|g" /var/www/html/admin/config.php
+        echo "Updated /var/www/html/admin/config.php"
+    fi
 fi
 
 # Ensure config files exist and are writable
