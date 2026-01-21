@@ -6,39 +6,39 @@
 [![Coolify](https://img.shields.io/badge/Coolify-Compatible-6B46C1.svg)](https://coolify.io/)
 [![License](https://img.shields.io/badge/License-GPL%20v3-green.svg)](LICENSE)
 
-**Production-ready Docker image for OpenCart 3 (OcStore v3.0.4.1)**
+**Production-ready Docker образ для OpenCart 3 (OcStore v3.0.4.1)**
 
-Deploy → Works. Zero manual configuration required.
+Задеплоїв → Працює. Без ручних налаштувань.
 
-## Key Features
+## Можливості
 
-| Feature | Description |
-|---------|-------------|
-| **Zero-touch Install** | Automatic installation without web wizard |
-| **Secure Storage** | Storage directory outside webroot |
-| **Data Persistence** | Modules, themes, images survive redeploys |
-| **Environment Config** | All settings via environment variables |
-| **Coolify Ready** | Traefik labels, proper health checks |
-| **JIT Performance** | OPcache + Tracing JIT enabled by default |
-| **Dev Tools** | Optional Xdebug & ionCube (disabled by default) |
+| Функція | Опис |
+|---------|------|
+| **Автоматична інсталяція** | Без веб-візарда, все автоматично |
+| **Безпечний storage** | Директорія storage поза webroot |
+| **Збереження даних** | Модулі, теми, зображення зберігаються при redeploy |
+| **Environment Variables** | Всі налаштування через змінні оточення |
+| **Coolify Ready** | Traefik labels, health checks |
+| **JIT продуктивність** | OPcache + Tracing JIT увімкнено |
+| **Dev інструменти** | Xdebug та ionCube опціонально |
 
-## Tech Stack
+## Технології
 
-| Component | Version | Details |
-|-----------|---------|---------|
+| Компонент | Версія | Деталі |
+|-----------|--------|--------|
 | **PHP** | 8.1-FPM | Debian Bookworm, gd, mysqli, zip, intl, bcmath, exif |
-| **OPcache** | + JIT | Tracing JIT (1255) for maximum performance |
-| **Nginx** | Latest | SEO URLs, gzip, static cache, security headers |
-| **MariaDB** | 10.6 LTS | Optimized InnoDB settings |
-| **Xdebug** | 3.x | Optional, disabled (incompatible with JIT) |
-| **ionCube** | Latest | Optional, disabled (incompatible with JIT) |
-| **phpMyAdmin** | Latest | Database management UI |
+| **OPcache** | + JIT | Tracing JIT (1255) для максимальної швидкості |
+| **Nginx** | Latest | SEO URLs, gzip, кешування, security headers |
+| **MariaDB** | 10.6 LTS | Оптимізовані налаштування InnoDB |
+| **Xdebug** | 3.x | Опціонально, вимкнено (несумісний з JIT) |
+| **ionCube** | Latest | Опціонально, вимкнено (несумісний з JIT) |
+| **phpMyAdmin** | Latest | Веб-інтерфейс для БД |
 
 ---
 
-## Quick Start / Швидкий старт
+## Швидкий старт
 
-### Coolify Deployment
+### Деплой на Coolify
 
 **1. Створити Application**
 
@@ -74,18 +74,18 @@ ADMIN_EMAIL=admin@yourdomain.com
 
 ---
 
-### Local Development
+### Локальна розробка
 
 ```bash
-# 1. Clone
+# 1. Клонувати
 git clone https://github.com/starychenko/OcStore.git
 cd OcStore
 
-# 2. Configure
+# 2. Налаштувати
 cp .env.example .env
-# Edit .env with your settings
+# Відредагувати .env
 
-# 3. Create docker-compose.override.yml for ports
+# 3. Створити docker-compose.override.yml для портів
 cat > docker-compose.override.yml << 'EOF'
 services:
   opencart:
@@ -96,16 +96,16 @@ services:
       - "8081:80"
 EOF
 
-# 4. Start
+# 4. Запустити
 docker compose up -d --build
 ```
 
-**URLs:**
-- Store: http://localhost:8080
-- Admin: http://localhost:8080/admin
+**Посилання:**
+- Магазин: http://localhost:8080
+- Адмінка: http://localhost:8080/admin
 - phpMyAdmin: http://localhost:8081
 
-**Example `.env` for development:**
+**Приклад `.env` для розробки:**
 ```env
 DB_ROOT_PASSWORD=rootpass123
 DB_DATABASE=opencart
@@ -439,14 +439,14 @@ XDEBUG_ENABLED=0
 
 ---
 
-## License
+## Ліцензія
 
-This Docker configuration is provided under the MIT License.
+Ця Docker конфігурація надається під ліцензією MIT.
 
-OcStore itself is licensed under [GNU GPL v3.0](https://github.com/ocStore/ocStore/blob/master/license.txt).
+OcStore ліцензовано під [GNU GPL v3.0](https://github.com/ocStore/ocStore/blob/master/license.txt).
 
 ---
 
-## Contributing
+## Внесок
 
-Issues and pull requests are welcome at [GitHub](https://github.com/starychenko/OcStore).
+Issues та pull requests вітаються на [GitHub](https://github.com/starychenko/OcStore).
