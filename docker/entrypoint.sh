@@ -82,7 +82,7 @@ else
 
     if [ -f "/var/www/html/install/cli_install.php" ]; then
         # Run CLI installer
-        php /var/www/html/install/cli_install.php install \
+        INSTALL_OUTPUT=$(php /var/www/html/install/cli_install.php install \
             --db_driver mysqli \
             --db_hostname "$DB_HOST" \
             --db_username "$DB_USERNAME" \
@@ -94,9 +94,15 @@ else
             --password "$ADMIN_PASSWORD" \
             --email "$ADMIN_EMAIL" \
             --http_server "$OPENCART_URL/" \
-            2>&1 || echo "      CLI install completed (check for errors above)"
+            2>&1) && INSTALL_SUCCESS=true || INSTALL_SUCCESS=false
 
-        echo "      Installation complete!"
+        echo "$INSTALL_OUTPUT"
+
+        if [ "$INSTALL_SUCCESS" = true ] && check_opencart_installed; then
+            echo "      Installation successful!"
+        else
+            echo "      WARNING: Installation may have failed. Check logs above."
+        fi
     else
         echo "      WARNING: CLI installer not found, manual installation required"
     fi
