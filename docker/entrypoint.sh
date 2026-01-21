@@ -25,6 +25,21 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 # --- Create directories ---
 mkdir -p /var/log/nginx /var/log/php /var/log/supervisor /run/nginx
 
+# --- Initialize html volume (first deploy only) ---
+if [ ! -f "/var/www/html/index.php" ]; then
+    echo "[0/5] First deploy detected - initializing html volume..."
+    if [ -d "/var/www/html-dist" ] && [ -f "/var/www/html-dist/index.php" ]; then
+        cp -r /var/www/html-dist/* /var/www/html/
+        chown -R www-data:www-data /var/www/html
+        echo "      OpenCart files copied to volume"
+    else
+        echo "      ERROR: Distribution files not found!"
+        exit 1
+    fi
+else
+    echo "[0/5] Existing installation detected - preserving files"
+fi
+
 # --- ionCube toggle (disabled by default for JIT compatibility) ---
 IONCUBE_ENABLED="${IONCUBE_ENABLED:-0}"
 IONCUBE_INI="/usr/local/etc/php/conf.d/00-ioncube.ini"

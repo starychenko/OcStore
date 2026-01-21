@@ -26,7 +26,7 @@ services:
       - XDEBUG_ENABLED=${XDEBUG_ENABLED:-0}
     volumes:
       - opencart_storage:/var/www/storage
-      - opencart_images:/var/www/html/image
+      - opencart_html:/var/www/html
     depends_on:
       mariadb:
         condition: service_healthy
@@ -83,7 +83,7 @@ services:
 volumes:
   opencart_storage:
     driver: local
-  opencart_images:
+  opencart_html:
     driver: local
   mariadb_data:
     driver: local

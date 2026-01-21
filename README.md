@@ -8,6 +8,7 @@
 - **Автоматичне налаштування storage** — безпечний шлях поза webroot
 - **Автоматичне видалення install/** — після успішної інсталяції
 - **Збереження даних при redeploy** — перевіряє БД, не перевстановлює
+- **Persistent volumes** — модулі, зображення та налаштування зберігаються
 - **Все через Environment Variables** — жодних ручних правок
 - **Готовий для Coolify** — Traefik labels, правильна структура
 - **OPcache + JIT** — максимальна продуктивність (PHP 8.1)
@@ -244,9 +245,33 @@ OcStore/
 
 ---
 
+## Docker Volumes (Збереження даних)
+
+При редеплої всі дані зберігаються в Docker volumes:
+
+| Volume | Шлях | Що зберігається |
+|--------|------|-----------------|
+| `opencart_html` | `/var/www/html` | Весь код OpenCart, модулі, теми |
+| `opencart_storage` | `/var/www/storage` | Кеш, сесії, логи, завантаження |
+| `mariadb_data` | `/var/lib/mysql` | База даних |
+
+**Це означає:**
+- ✅ Встановлені модулі зберігаються
+- ✅ Завантажені зображення зберігаються
+- ✅ Теми та кастомізації зберігаються
+- ✅ База даних зберігається
+- ✅ Налаштування OpenCart зберігаються
+
+**Перший деплой:** OpenCart копіюється з образу в volume.
+**Наступні деплої:** Файли у volume не перезаписуються.
+
+---
+
 ## Що відбувається при деплої
 
 ```
+[0/5] First deploy detected          → Копіювання OpenCart у volume
+      (або: Existing installation detected - preserving files)
 [INFO] ionCube Loader DISABLED (JIT enabled for performance)
 [INFO] Xdebug DISABLED (JIT enabled for performance)
 [1/5] Migrating storage files...     → Копіювання в /var/www/storage/
@@ -258,7 +283,7 @@ OcStore/
 [5/5] Security cleanup...            → Видалення /install/
 ```
 
-**При redeploy:** якщо БД вже має таблиці OpenCart — інсталяція пропускається, тільки регенерується config.php.
+**При redeploy:** всі файли (модулі, теми, зображення) зберігаються у Docker volumes. Перевстановлення не відбувається.
 
 Логи видно в Coolify → **Logs** → `opencart`
 
@@ -409,9 +434,14 @@ XDEBUG_ENABLED=0
 
 **Рішення:** Зачекайте або перевірте логи в Coolify → Logs → opencart
 
-### Налаштування скидаються при redeploy
+### Дані втрачаються при redeploy
 
-**Це виправлено.** Скрипт перевіряє таблиці в БД і не перевстановлює OpenCart якщо дані існують.
+**Це виправлено.** Всі дані зберігаються в Docker volumes:
+- `/var/www/html` — модулі, теми, код
+- `/var/www/storage` — кеш, сесії, завантаження
+- База даних — окремий volume
+
+Модулі та налаштування не втрачаються при редеплої.
 
 ---
 
