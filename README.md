@@ -1,6 +1,6 @@
 # OpenCart 3 (OcStore) Docker
 
-[![OcStore](https://img.shields.io/badge/OcStore-v3.0.4.1-blue.svg)](https://github.com/ocStore/ocStore)
+[![OcStore](https://img.shields.io/badge/OcStore-v3.0.4.1-blue.svg)](https://github.com/ocStore/ocStore/releases/tag/v3.0.4.1)
 [![PHP](https://img.shields.io/badge/PHP-8.1--FPM-777BB4.svg)](https://www.php.net/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 [![Coolify](https://img.shields.io/badge/Coolify-Compatible-6B46C1.svg)](https://coolify.io/)
