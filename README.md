@@ -1,42 +1,95 @@
 # OpenCart 3 (OcStore) Docker
 
-Docker-образ для OpenCart 3 (OcStore v3.0.4.1) з оптимізованими налаштуваннями для production.
+Повністю автоматизований Docker-образ для OpenCart 3 (OcStore v3.0.4.1). Задеплоїв — працює. Без ручних кроків.
+
+## Можливості
+
+- ✅ **Автоматична інсталяція** — без веб-візарда
+- ✅ **Автоматичне налаштування storage** — безпечний шлях поза webroot
+- ✅ **Автоматичне видалення install/** — після успішної інсталяції
+- ✅ **Все через Environment Variables** — жодних ручних правок
+- ✅ **Готовий для Coolify** — Traefik labels, правильна структура
 
 ## Технології
 
 | Компонент | Версія | Опис |
 |-----------|--------|------|
-| PHP | 8.1-FPM | З усіма необхідними розширеннями |
-| Nginx | Alpine | Веб-сервер з оптимізованою конфігурацією |
-| MariaDB | 10.6 LTS | База даних з оптимізованими налаштуваннями |
-| phpMyAdmin | Latest | Веб-інтерфейс для керування БД |
+| PHP | 8.1-FPM | Всі необхідні розширення |
+| Nginx | Alpine | SEO URLs, кешування, security headers |
+| MariaDB | 10.6 LTS | Оптимізовані налаштування InnoDB |
+| phpMyAdmin | Latest | Веб-інтерфейс для БД |
 
-## Швидкий старт (локально)
+---
 
-### 1. Клонувати репозиторій
+## Швидкий старт (Coolify)
+
+### 1. Створити Application
+
+**Resources** → **Add New** → **Private Repository (GitHub)**
+
+### 2. Вибрати Build Pack
+
+**Docker Compose**
+
+### 3. Додати Environment Variables
+
+```env
+DB_DATABASE=opencart
+DB_USERNAME=opencart
+DB_PASSWORD=YourSecureDbPassword
+DB_ROOT_PASSWORD=YourSecureRootPassword
+OPENCART_URL=https://shop.yourdomain.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=YourSecureAdminPassword
+ADMIN_EMAIL=admin@yourdomain.com
+```
+
+> ⚠️ **Важливо:** Не використовуйте спеціальні символи `$ # ! @ \` в паролях — вони інтерпретуються shell і обрізаються.
+
+### 4. Налаштувати домени
+
+| Сервіс | Домен |
+|--------|-------|
+| opencart | shop.yourdomain.com |
+| phpmyadmin | pma.yourdomain.com |
+
+### 5. Deploy
+
+Натиснути **Deploy**. Через 2-3 хвилини:
+- Магазин: `https://shop.yourdomain.com`
+- Адмінка: `https://shop.yourdomain.com/admin`
+
+---
+
+## Локальна розробка
+
+### 1. Клонувати
 
 ```bash
 git clone https://github.com/starychenko/OcStore.git
 cd OcStore
 ```
 
-### 2. Створити .env файл
+### 2. Створити .env
 
 ```bash
 cp .env.example .env
 ```
 
 Відредагувати `.env`:
+
 ```env
-DB_ROOT_PASSWORD=your_secure_root_password
+DB_ROOT_PASSWORD=rootpass123
 DB_DATABASE=opencart
 DB_USERNAME=opencart
-DB_PASSWORD=your_secure_password
+DB_PASSWORD=dbpass123
 OPENCART_URL=http://localhost:8080
-ADMIN_EMAIL=admin@example.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+ADMIN_EMAIL=admin@localhost.com
 ```
 
-### 3. Створити docker-compose.override.yml (для локальної розробки)
+### 3. Створити docker-compose.override.yml
 
 ```yaml
 services:
@@ -52,64 +105,37 @@ services:
 ### 4. Запустити
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-### 5. Відкрити в браузері
+### 5. Готово
 
-- **OpenCart:** http://localhost:8080
+- **Магазин:** http://localhost:8080
+- **Адмінка:** http://localhost:8080/admin
 - **phpMyAdmin:** http://localhost:8081
-
-### 6. Встановити OpenCart
-
-При встановленні вказати:
-
-| Поле | Значення |
-|------|----------|
-| DB Host | `mariadb` |
-| DB User | значення з `DB_USERNAME` |
-| DB Password | значення з `DB_PASSWORD` |
-| DB Name | значення з `DB_DATABASE` |
-| DB Prefix | `oc_` |
 
 ---
 
-## Деплой через Coolify
+## Environment Variables
 
-### 1. Додати репозиторій в Coolify
+### Обов'язкові
 
-1. **Resources** → **Add New** → **Application**
-2. Вибрати **Docker Compose**
-3. Підключити GitHub репозиторій
+| Змінна | Опис | Приклад |
+|--------|------|---------|
+| `DB_PASSWORD` | Пароль користувача БД | `SecurePass123` |
+| `DB_ROOT_PASSWORD` | Пароль root БД | `RootPass123` |
+| `OPENCART_URL` | URL магазину (з https://) | `https://shop.example.com` |
+| `ADMIN_PASSWORD` | Пароль адміністратора | `AdminPass123` |
 
-### 2. Налаштувати Environment Variables
+### Опціональні
 
-В розділі **Environment Variables** додати:
-
-```
-DB_ROOT_PASSWORD=надійний_пароль_root
-DB_DATABASE=opencart
-DB_USERNAME=opencart
-DB_PASSWORD=надійний_пароль_користувача
-OPENCART_URL=https://shop.yourdomain.com
-ADMIN_EMAIL=admin@yourdomain.com
-```
-
-### 3. Налаштувати домени
-
-В розділі **Domains**:
-
-| Сервіс | Домен |
-|--------|-------|
-| `opencart` | `shop.yourdomain.com` |
-| `phpmyadmin` | `pma.yourdomain.com` |
-
-### 4. Deploy
-
-Натиснути **Deploy**. Coolify автоматично:
-- Збілдить Docker образ
-- Налаштує SSL сертифікати (Let's Encrypt)
-- Запустить всі сервіси
+| Змінна | За замовчуванням | Опис |
+|--------|------------------|------|
+| `DB_DATABASE` | `opencart` | Назва бази даних |
+| `DB_USERNAME` | `opencart` | Користувач БД |
+| `DB_PREFIX` | `oc_` | Префікс таблиць |
+| `ADMIN_USERNAME` | `admin` | Логін адміністратора |
+| `ADMIN_EMAIL` | `admin@example.com` | Email адміністратора |
 
 ---
 
@@ -118,152 +144,121 @@ ADMIN_EMAIL=admin@yourdomain.com
 ```
 OcStore/
 ├── Dockerfile                  # PHP 8.1-FPM + Nginx + OcStore
-├── docker-compose.yml          # Основна конфігурація для Coolify
-├── .env.example                # Приклад змінних середовища
-├── .gitignore
-├── .dockerignore
+├── docker-compose.yml          # Production конфігурація
+├── .env.example                # Приклад змінних
 └── docker/
-    ├── nginx/
-    │   └── default.conf        # Nginx конфігурація
+    ├── nginx/default.conf      # Nginx: SEO URLs, кеш, безпека
     ├── php/
-    │   ├── php.ini             # PHP налаштування
-    │   └── php-fpm.conf        # PHP-FPM pool конфігурація
-    ├── mariadb/
-    │   └── my.cnf              # MariaDB оптимізація
-    ├── supervisor/
-    │   └── supervisord.conf    # Керування процесами
-    └── entrypoint.sh           # Скрипт ініціалізації
+    │   ├── php.ini             # PHP: OPcache, ліміти, безпека
+    │   └── php-fpm.conf        # PHP-FPM pool
+    ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache
+    ├── supervisor/supervisord.conf
+    └── entrypoint.sh           # Автоматична інсталяція
 ```
 
 ---
 
-## PHP розширення
+## Що відбувається при деплої
 
-Встановлені розширення:
+```
+[1/5] Migrating storage files...     → Копіювання в /var/www/storage/
+[2/5] Waiting for database...        → Очікування MariaDB
+[3/5] Installing OpenCart...         → CLI інсталяція
+[4/5] Configuring storage path...    → Оновлення config.php
+[5/5] Security cleanup...            → Видалення /install/
+```
 
-- `gd` — обробка зображень
-- `mysqli` — з'єднання з MySQL/MariaDB
-- `pdo_mysql` — PDO драйвер
-- `zip` — робота з архівами
-- `intl` — інтернаціоналізація
-- `xml` — парсинг XML
-- `mbstring` — багатобайтові рядки
-- `opcache` — кешування PHP коду
-- `bcmath` — математичні операції
-- `exif` — метадані зображень
-- `curl` — HTTP запити
-- `openssl` — шифрування
+Логи видно в Coolify → **Logs** → `opencart`
 
 ---
 
 ## Оптимізації
 
-### PHP (php.ini)
+### PHP
 
-| Параметр | Значення | Опис |
-|----------|----------|------|
-| `memory_limit` | 512M | Ліміт пам'яті |
-| `max_execution_time` | 300 | Час виконання скрипта |
-| `upload_max_filesize` | 100M | Максимальний розмір завантаження |
-| `opcache.memory_consumption` | 256M | Пам'ять для OPcache |
-| `opcache.max_accelerated_files` | 10000 | Кількість закешованих файлів |
+| Параметр | Значення |
+|----------|----------|
+| `memory_limit` | 512M |
+| `max_execution_time` | 300s |
+| `upload_max_filesize` | 100M |
+| `opcache.memory_consumption` | 256M |
 
-### MariaDB (my.cnf)
+### MariaDB
 
-| Параметр | Значення | Опис |
-|----------|----------|------|
-| `innodb_buffer_pool_size` | 1G | Буфер InnoDB (налаштувати під RAM) |
-| `query_cache_size` | 64M | Кеш запитів |
-| `max_connections` | 150 | Максимум з'єднань |
-| `innodb_flush_log_at_trx_commit` | 2 | Баланс швидкості/надійності |
+| Параметр | Значення |
+|----------|----------|
+| `innodb_buffer_pool_size` | 1G |
+| `query_cache_size` | 64M |
+| `max_connections` | 150 |
 
 ### Nginx
 
 - Gzip стиснення
-- Кешування статичних файлів (1 рік)
-- Security headers (X-Frame-Options, X-Content-Type-Options)
-- SEO URLs для OpenCart
+- Статичний кеш 1 рік
+- Security headers
+- SEO URLs
 
 ---
 
 ## Безпека
 
-### Захищено
+### Включено
 
-- Заборонено виконання PHP в `/image/` та `/system/storage/`
-- Закритий доступ до `.tpl`, `.ini`, `.log`, `.sql` файлів
-- Закритий доступ до `/system/` та `/vendor/` директорій
-- Вимкнені небезпечні PHP функції (exec, shell_exec, etc.)
-- Security headers в Nginx
+- ✅ Storage поза webroot (`/var/www/storage/`)
+- ✅ Заборонено виконання PHP в `/image/` та `/storage/`
+- ✅ Закритий доступ до `.tpl`, `.ini`, `.log` файлів
+- ✅ Security headers (X-Frame-Options, X-Content-Type-Options)
+- ✅ Небезпечні PHP функції вимкнені
 
 ### Рекомендації
 
-1. **Змініть паролі** — використовуйте надійні паролі (16+ символів)
-2. **Обмежте phpMyAdmin** — в production використовуйте IP whitelist або basic auth
-3. **Після встановлення** — видаліть папку `/install/`
-4. **Оновлення** — регулярно оновлюйте OcStore та Docker образи
+1. Використовуйте надійні паролі (12+ символів)
+2. Обмежте доступ до phpMyAdmin в production
+3. Регулярно оновлюйте Docker образи
 
 ---
 
 ## Команди
 
-### Запуск
 ```bash
+# Запуск
 docker compose up -d
-```
 
-### Зупинка
-```bash
-docker compose down
-```
-
-### Перегляд логів
-```bash
+# Перегляд логів
 docker compose logs -f opencart
-docker compose logs -f mariadb
-```
 
-### Перезбірка образу
-```bash
-docker compose up -d --build
-```
+# Зупинка
+docker compose down
 
-### Видалення з даними
-```bash
+# Повне видалення (з даними)
 docker compose down -v
+
+# Перезбірка
+docker compose up -d --build
 ```
 
 ---
 
 ## Вирішення проблем
 
-### OpenCart показує помилку підключення до БД
+### Помилка підключення до БД
 
-Перевірте що MariaDB запущена і healthy:
-```bash
-docker compose ps
-```
+**Причина:** Паролі зі спеціальними символами (`$`, `#`, `!`)
 
-Перевірте credentials в `.env` та налаштуваннях OpenCart.
+**Рішення:** Використовуйте паролі тільки з літер і цифр
 
-### Помилка прав доступу
+### Білий екран / 500 помилка
 
-Зайдіть в контейнер і виправте права:
-```bash
-docker compose exec opencart sh
-chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
-chmod -R 777 /var/www/html/system/storage
-```
+**Причина:** Неправильний шлях storage
 
-### Повільна робота
+**Рішення:** Перевірте логи `docker compose logs opencart`
 
-1. Збільшіть `innodb_buffer_pool_size` в `docker/mariadb/my.cnf`
-2. Перевірте що OPcache увімкнений
-3. Увімкніть Redis для сесій (опціонально)
+### phpMyAdmin не працює
+
+**Логін:** користувач `opencart` або `root` з відповідними паролями
 
 ---
 
 ## Ліцензія
 
-OcStore поширюється під ліцензією [GNU General Public License v3.0](https://github.com/ocStore/ocStore/blob/master/license.txt).
+OcStore — [GNU GPL v3.0](https://github.com/ocStore/ocStore/blob/master/license.txt)
