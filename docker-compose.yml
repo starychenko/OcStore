@@ -37,6 +37,7 @@ services:
   # MariaDB Database
   mariadb:
     image: mariadb:10.6
+    hostname: mariadb
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_DATABASE:-opencart}
