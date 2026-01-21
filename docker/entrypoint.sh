@@ -92,12 +92,12 @@ if [ -n "$DB_HOST" ]; then
         echo "=== Testing MySQL Connection ==="
         if command -v mysql >/dev/null 2>&1; then
             echo "Testing connection with provided credentials..."
-            if mysql -h "$DB_HOST" -P "${DB_PORT:-3306}" -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT 1;" "$DB_DATABASE" 2>&1; then
+            if mysql --skip-ssl -h "$DB_HOST" -P "${DB_PORT:-3306}" -u "$DB_USERNAME" -p"$DB_PASSWORD" -e "SELECT 1;" "$DB_DATABASE" 2>&1; then
                 echo "MySQL connection: SUCCESS"
             else
                 echo "MySQL connection: FAILED"
                 echo "Trying without password..."
-                if mysql -h "$DB_HOST" -P "${DB_PORT:-3306}" -u "$DB_USERNAME" -e "SELECT 1;" "$DB_DATABASE" 2>&1; then
+                if mysql --skip-ssl -h "$DB_HOST" -P "${DB_PORT:-3306}" -u "$DB_USERNAME" -e "SELECT 1;" "$DB_DATABASE" 2>&1; then
                     echo "Connection WITHOUT password: SUCCESS"
                     echo "!!! DATABASE HAS NO PASSWORD SET !!!"
                 else
@@ -105,7 +105,7 @@ if [ -n "$DB_HOST" ]; then
                 fi
                 echo ""
                 echo "Trying as root..."
-                mysql -h "$DB_HOST" -P "${DB_PORT:-3306}" -u root -p"${DB_ROOT_PASSWORD:-}" -e "SELECT User, Host FROM mysql.user;" 2>&1 || echo "Root connection failed"
+                mysql --skip-ssl -h "$DB_HOST" -P "${DB_PORT:-3306}" -u root -p"${DB_ROOT_PASSWORD:-}" -e "SELECT User, Host FROM mysql.user;" 2>&1 || echo "Root connection failed"
             fi
         else
             echo "mysql client not installed, skipping connection test"
