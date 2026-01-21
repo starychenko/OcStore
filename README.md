@@ -19,8 +19,8 @@
 |-----------|--------|------|
 | PHP | 8.1-FPM (Debian Bookworm) | gd, mysqli, zip, intl, opcache, bcmath, exif |
 | OPcache | + JIT | Tracing JIT для максимальної швидкості |
-| Xdebug | 3.x | Опціонально (вимкнено за замовчуванням) |
-| ionCube | Latest | Loader для закодованих модулів |
+| Xdebug | 3.x | Опціонально, вимкнено (несумісний з JIT) |
+| ionCube | Latest | Опціонально, вимкнено (несумісний з JIT) |
 | Nginx | Debian | SEO URLs, кешування, security headers |
 | MariaDB | 10.6 LTS | Оптимізовані налаштування InnoDB |
 | phpMyAdmin | Latest | Веб-інтерфейс для БД |
@@ -125,14 +125,24 @@ docker compose up -d --build
 
 ---
 
-## Xdebug та JIT
+## JIT, ionCube та Xdebug
 
-**Xdebug та JIT несумісні** — вони не можуть працювати одночасно. Тому Xdebug **вимкнений за замовчуванням** для максимальної продуктивності.
+**JIT, ionCube та Xdebug несумісні** — вони не можуть працювати одночасно. Тому ionCube та Xdebug **вимкнені за замовчуванням** для максимальної продуктивності з JIT.
 
-| Режим | XDEBUG_ENABLED | Xdebug | JIT | Використання |
-|-------|----------------|--------|-----|--------------|
-| **Production** | `0` (за замовчуванням) | Off | On | Coolify, продакшн |
-| **Development** | `1` | On | Off | Локальна розробка з VS Code |
+| Режим | IONCUBE_ENABLED | XDEBUG_ENABLED | JIT | Використання |
+|-------|-----------------|----------------|-----|--------------|
+| **Production** | `0` | `0` | On | Coolify, продакшн (максимальна швидкість) |
+| **ionCube** | `1` | `0` | Off | Закодовані PHP модулі |
+| **Development** | `0` | `1` | Off | Локальна розробка з VS Code |
+
+### Увімкнути ionCube для закодованих модулів
+
+Додайте в `.env`:
+```env
+IONCUBE_ENABLED=1
+```
+
+> **Увага:** ionCube вимкне JIT. Використовуйте тільки якщо у вас є закодовані PHP модулі.
 
 ### Увімкнути Xdebug для розробки
 
@@ -174,12 +184,19 @@ XDEBUG_ENABLED=1
 
 ## ionCube Loader
 
-ionCube Loader встановлений для підтримки закодованих PHP модулів та розширень OpenCart.
+ionCube Loader **вимкнений за замовчуванням** для сумісності з JIT. Увімкніть його тільки якщо у вас є закодовані PHP модулі.
 
-Перевірити роботу:
+Увімкнути:
+```env
+IONCUBE_ENABLED=1
+```
+
+Перевірити роботу (після увімкнення):
 ```bash
 docker exec ocstore-opencart-1 php -m | grep ionCube
 ```
+
+> **Важливо:** ionCube та JIT несумісні. Якщо вам потрібен JIT для максимальної продуктивності — не вмикайте ionCube.
 
 ---
 
@@ -203,6 +220,7 @@ docker exec ocstore-opencart-1 php -m | grep ionCube
 | `DB_PREFIX` | `oc_` | Префікс таблиць |
 | `ADMIN_USERNAME` | `admin` | Логін адміністратора |
 | `ADMIN_EMAIL` | `admin@example.com` | Email адміністратора |
+| `IONCUBE_ENABLED` | `0` | `1` = увімкнути ionCube (вимкне JIT) |
 | `XDEBUG_ENABLED` | `0` | `1` = увімкнути Xdebug (вимкне JIT) |
 
 ---
@@ -229,6 +247,7 @@ OcStore/
 ## Що відбувається при деплої
 
 ```
+[INFO] ionCube Loader DISABLED (JIT enabled for performance)
 [INFO] Xdebug DISABLED (JIT enabled for performance)
 [1/5] Migrating storage files...     → Копіювання в /var/www/storage/
 [2/5] Waiting for database...        → Очікування MariaDB
@@ -368,9 +387,15 @@ docker exec ocstore-opencart-1 dd if=/dev/zero of=/tmp/test bs=1M count=100 ofla
 
 ### JIT показує Disabled
 
-**Причина:** Увімкнений Xdebug (несумісні)
+**Причина:** Увімкнений ionCube або Xdebug (несумісні з JIT)
 
-**Рішення:** Переконайтесь що `XDEBUG_ENABLED=0` або не вказано
+**Рішення:** Переконайтесь що обидва вимкнені:
+```env
+IONCUBE_ENABLED=0
+XDEBUG_ENABLED=0
+```
+
+Або просто не вказуйте ці змінні (за замовчуванням = 0)
 
 ### Xdebug не підключається
 

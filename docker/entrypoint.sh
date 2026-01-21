@@ -25,6 +25,24 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 # --- Create directories ---
 mkdir -p /var/log/nginx /var/log/php /var/log/supervisor /run/nginx
 
+# --- ionCube toggle (disabled by default for JIT compatibility) ---
+IONCUBE_ENABLED="${IONCUBE_ENABLED:-0}"
+IONCUBE_INI="/usr/local/etc/php/conf.d/00-ioncube.ini"
+
+if [ "$IONCUBE_ENABLED" = "1" ] || [ "$IONCUBE_ENABLED" = "true" ]; then
+    echo "[INFO] ionCube Loader ENABLED (JIT will be disabled - they are incompatible)"
+    # Ensure ioncube is enabled
+    if [ -f "${IONCUBE_INI}.disabled" ]; then
+        mv "${IONCUBE_INI}.disabled" "$IONCUBE_INI"
+    fi
+else
+    echo "[INFO] ionCube Loader DISABLED (JIT enabled for performance)"
+    # Disable ioncube by renaming config
+    if [ -f "$IONCUBE_INI" ]; then
+        mv "$IONCUBE_INI" "${IONCUBE_INI}.disabled"
+    fi
+fi
+
 # --- Xdebug toggle (disabled by default for JIT compatibility) ---
 XDEBUG_ENABLED="${XDEBUG_ENABLED:-0}"
 XDEBUG_INI="/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini"
