@@ -43,6 +43,7 @@ mkdir -p /var/log/supervisor
 mkdir -p /run/nginx
 
 # Ensure storage directories exist with correct permissions
+# Both default and "moved" locations for OpenCart compatibility
 STORAGE_DIRS="
 /var/www/html/system/storage/cache
 /var/www/html/system/storage/download
@@ -50,6 +51,12 @@ STORAGE_DIRS="
 /var/www/html/system/storage/modification
 /var/www/html/system/storage/session
 /var/www/html/system/storage/upload
+/var/www/storage/cache
+/var/www/storage/download
+/var/www/storage/logs
+/var/www/storage/modification
+/var/www/storage/session
+/var/www/storage/upload
 /var/www/html/image/cache
 /var/www/html/image/catalog
 "
@@ -59,6 +66,15 @@ for dir in $STORAGE_DIRS; do
     chown -R www-data:www-data "$dir"
     chmod -R 777 "$dir"
 done
+
+# Copy vendor files to new storage location if they don't exist
+# This is needed when OpenCart moves storage outside webroot
+if [ -d "/var/www/html/system/storage/vendor" ] && [ ! -d "/var/www/storage/vendor" ]; then
+    echo "Copying vendor files to /var/www/storage/vendor..."
+    cp -r /var/www/html/system/storage/vendor /var/www/storage/
+    chown -R www-data:www-data /var/www/storage/vendor
+    chmod -R 755 /var/www/storage/vendor
+fi
 
 # Ensure config files exist and are writable
 touch /var/www/html/config.php

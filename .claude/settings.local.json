@@ -10,7 +10,8 @@
       "Bash(curl:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial Docker setup for OpenCart 3 \\(OcStore\\) with Coolify support\n\n- PHP 8.1-FPM with all required extensions \\(gd, mysqli, opcache, etc.\\)\n- Nginx with SEO URLs, caching, and security headers\n- MariaDB 10.6 with optimized InnoDB settings\n- phpMyAdmin for database management\n- Supervisor for process management\n- Optimized php.ini and my.cnf configurations\n- Ready for Coolify deployment with Traefik labels\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial Docker setup for OpenCart 3 \\(OcStore\\) with Coolify support\n\n- PHP 8.1-FPM with all required extensions \\(gd, mysqli, opcache, etc.\\)\n- Nginx with SEO URLs, caching, and security headers\n- MariaDB 10.6 with optimized InnoDB settings\n- phpMyAdmin for database management\n- Supervisor for process management\n- Optimized php.ini and my.cnf configurations\n- Ready for Coolify deployment with Traefik labels\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git rm:*)"
     ]
   }
 }

@@ -68,20 +68,30 @@ RUN curl -L https://github.com/ocStore/ocStore/archive/refs/tags/v${OCSTORE_VERS
     && cp -r /tmp/ocStore-${OCSTORE_VERSION}/upload/* /var/www/html/ \
     && rm -rf /tmp/ocstore.zip /tmp/ocStore-${OCSTORE_VERSION}
 
-# Create storage directory structure
+# Create storage directory structure (both locations for OpenCart compatibility)
+# /var/www/html/system/storage - default location
+# /var/www/storage - location after OpenCart "move storage" recommendation
 RUN mkdir -p /var/www/html/system/storage/cache \
     && mkdir -p /var/www/html/system/storage/download \
     && mkdir -p /var/www/html/system/storage/logs \
     && mkdir -p /var/www/html/system/storage/modification \
     && mkdir -p /var/www/html/system/storage/session \
     && mkdir -p /var/www/html/system/storage/upload \
+    && mkdir -p /var/www/storage/cache \
+    && mkdir -p /var/www/storage/download \
+    && mkdir -p /var/www/storage/logs \
+    && mkdir -p /var/www/storage/modification \
+    && mkdir -p /var/www/storage/session \
+    && mkdir -p /var/www/storage/upload \
     && mkdir -p /var/www/html/image/cache \
     && mkdir -p /var/www/html/image/catalog
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
+    && chown -R www-data:www-data /var/www/storage \
     && chmod -R 755 /var/www/html \
     && chmod -R 777 /var/www/html/system/storage \
+    && chmod -R 777 /var/www/storage \
     && chmod -R 777 /var/www/html/image/cache \
     && chmod -R 777 /var/www/html/image/catalog \
     && chmod 666 /var/www/html/config.php 2>/dev/null || touch /var/www/html/config.php && chmod 666 /var/www/html/config.php \
