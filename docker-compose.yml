@@ -18,6 +18,9 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      # Xdebug disabled by default for JIT performance
+      # Set to 1 for development debugging
+      - XDEBUG_ENABLED=${XDEBUG_ENABLED:-0}
     volumes:
       - opencart_storage:/var/www/storage
       - opencart_images:/var/www/html/image

@@ -7,16 +7,19 @@
 - **Автоматична інсталяція** — без веб-візарда
 - **Автоматичне налаштування storage** — безпечний шлях поза webroot
 - **Автоматичне видалення install/** — після успішної інсталяції
+- **Збереження даних при redeploy** — перевіряє БД, не перевстановлює
 - **Все через Environment Variables** — жодних ручних правок
 - **Готовий для Coolify** — Traefik labels, правильна структура
-- **Середовище для розробки** — Xdebug, ionCube, відображення помилок
+- **OPcache + JIT** — максимальна продуктивність (PHP 8.1)
+- **Xdebug опціонально** — вмикається для розробки
 
 ## Технології
 
 | Компонент | Версія | Опис |
 |-----------|--------|------|
 | PHP | 8.1-FPM (Debian Bookworm) | gd, mysqli, zip, intl, opcache, bcmath, exif |
-| Xdebug | 3.x | Debug + Develop modes |
+| OPcache | + JIT | Tracing JIT для максимальної швидкості |
+| Xdebug | 3.x | Опціонально (вимкнено за замовчуванням) |
 | ionCube | Latest | Loader для закодованих модулів |
 | Nginx | Debian | SEO URLs, кешування, security headers |
 | MariaDB | 10.6 LTS | Оптимізовані налаштування InnoDB |
@@ -90,6 +93,9 @@ OPENCART_URL=http://localhost:8080
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ADMIN_EMAIL=admin@localhost.com
+
+# Для відладки в VS Code:
+XDEBUG_ENABLED=1
 ```
 
 ### 3. Створити docker-compose.override.yml
@@ -119,9 +125,27 @@ docker compose up -d --build
 
 ---
 
-## Xdebug (VS Code)
+## Xdebug та JIT
 
-Xdebug вже налаштований і працює. Для підключення VS Code створіть `.vscode/launch.json`:
+**Xdebug та JIT несумісні** — вони не можуть працювати одночасно. Тому Xdebug **вимкнений за замовчуванням** для максимальної продуктивності.
+
+| Режим | XDEBUG_ENABLED | Xdebug | JIT | Використання |
+|-------|----------------|--------|-----|--------------|
+| **Production** | `0` (за замовчуванням) | Off | On | Coolify, продакшн |
+| **Development** | `1` | On | Off | Локальна розробка з VS Code |
+
+### Увімкнути Xdebug для розробки
+
+Додайте в `.env`:
+```env
+XDEBUG_ENABLED=1
+```
+
+Або в Coolify Environment Variables (тільки якщо потрібна відладка на сервері).
+
+### Налаштування VS Code
+
+Створіть `.vscode/launch.json`:
 
 ```json
 {
@@ -140,7 +164,7 @@ Xdebug вже налаштований і працює. Для підключе�
 }
 ```
 
-**Налаштування Xdebug:**
+**Параметри Xdebug:**
 - Mode: `debug,develop`
 - Port: `9003`
 - IDE Key: `VSCODE`
@@ -179,6 +203,7 @@ docker exec ocstore-opencart-1 php -m | grep ionCube
 | `DB_PREFIX` | `oc_` | Префікс таблиць |
 | `ADMIN_USERNAME` | `admin` | Логін адміністратора |
 | `ADMIN_EMAIL` | `admin@example.com` | Email адміністратора |
+| `XDEBUG_ENABLED` | `0` | `1` = увімкнути Xdebug (вимкне JIT) |
 
 ---
 
@@ -192,11 +217,11 @@ OcStore/
 └── docker/
     ├── nginx/default.conf      # Nginx: SEO URLs, кеш, безпека
     ├── php/
-    │   ├── php.ini             # PHP: OPcache, Xdebug, development settings
+    │   ├── php.ini             # PHP: OPcache, JIT, Xdebug
     │   └── php-fpm.conf        # PHP-FPM pool
     ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache
     ├── supervisor/supervisord.conf
-    └── entrypoint.sh           # Автоматична інсталяція
+    └── entrypoint.sh           # Автоматична інсталяція + Xdebug toggle
 ```
 
 ---
@@ -204,12 +229,17 @@ OcStore/
 ## Що відбувається при деплої
 
 ```
+[INFO] Xdebug DISABLED (JIT enabled for performance)
 [1/5] Migrating storage files...     → Копіювання в /var/www/storage/
 [2/5] Waiting for database...        → Очікування MariaDB
-[3/5] Installing OpenCart...         → CLI інсталяція
+[3/5] Checking OpenCart installation...
+      ├── Database has existing tables → Regenerate config.php
+      └── Fresh database → Run CLI installer
 [4/5] Configuring storage path...    → Оновлення config.php
 [5/5] Security cleanup...            → Видалення /install/
 ```
+
+**При redeploy:** якщо БД вже має таблиці OpenCart — інсталяція пропускається, тільки регенерується config.php.
 
 Логи видно в Coolify → **Logs** → `opencart`
 
@@ -217,15 +247,14 @@ OcStore/
 
 ## PHP Налаштування
 
-### Production vs Development
-
-Поточна конфігурація оптимізована для **розробки**:
+### OPcache + JIT
 
 | Параметр | Значення | Опис |
 |----------|----------|------|
-| `display_errors` | On | Показувати помилки |
-| `error_reporting` | E_ALL | Всі помилки |
-| `xdebug.mode` | debug,develop | Відладка + помічники |
+| `opcache.enable` | 1 | OPcache увімкнено |
+| `opcache.jit` | 1255 | Tracing JIT (найшвидший) |
+| `opcache.jit_buffer_size` | 128M | Буфер для JIT |
+| `opcache.memory_consumption` | 256M | Пам'ять для кешу |
 
 ### Ліміти
 
@@ -234,7 +263,6 @@ OcStore/
 | `memory_limit` | 512M |
 | `max_execution_time` | 300s |
 | `upload_max_filesize` | 100M |
-| `opcache.memory_consumption` | 256M |
 
 ### MariaDB
 
@@ -262,14 +290,14 @@ OcStore/
 - Закритий доступ до `.tpl`, `.ini`, `.log` файлів
 - Security headers (X-Frame-Options, X-Content-Type-Options)
 - Небезпечні PHP функції вимкнені
+- Xdebug вимкнено за замовчуванням
 
 ### Рекомендації для Production
 
-1. Вимкніть `display_errors` в `php.ini`
-2. Змініть `xdebug.mode` на `off` або видаліть Xdebug
-3. Використовуйте надійні паролі (12+ символів)
-4. Обмежте доступ до phpMyAdmin
-5. Регулярно оновлюйте Docker образи
+1. Не вмикайте `XDEBUG_ENABLED=1` на продакшні
+2. Використовуйте надійні паролі (12+ символів)
+3. Обмежте доступ до phpMyAdmin
+4. Регулярно оновлюйте Docker образи
 
 ---
 
@@ -294,8 +322,28 @@ docker compose up -d --build
 # Перевірити PHP модулі
 docker exec ocstore-opencart-1 php -m
 
+# Перевірити JIT статус
+docker exec ocstore-opencart-1 php -r "var_dump(opcache_get_status()['jit']);"
+
 # Перевірити Xdebug
-docker exec ocstore-opencart-1 php -v
+docker exec ocstore-opencart-1 php -v | grep -i xdebug
+```
+
+---
+
+## Бенчмарк
+
+Перевірити продуктивність сервера:
+
+```bash
+# TTFB (Time To First Byte)
+curl -w "TTFB: %{time_starttransfer}s\nTotal: %{time_total}s\n" -o /dev/null -s https://your-domain.com/
+
+# PHP benchmark
+docker exec ocstore-opencart-1 php -r "\$s=microtime(1);for(\$i=0;\$i<1000000;\$i++){}echo 'Loop 1M: '.round((microtime(1)-\$s)*1000).'ms'.PHP_EOL;"
+
+# Disk I/O
+docker exec ocstore-opencart-1 dd if=/dev/zero of=/tmp/test bs=1M count=100 oflag=direct 2>&1 | tail -1
 ```
 
 ---
@@ -318,17 +366,27 @@ docker exec ocstore-opencart-1 php -v
 
 **Логін:** користувач `opencart` або `root` з відповідними паролями
 
+### JIT показує Disabled
+
+**Причина:** Увімкнений Xdebug (несумісні)
+
+**Рішення:** Переконайтесь що `XDEBUG_ENABLED=0` або не вказано
+
 ### Xdebug не підключається
 
-1. Перевірте, що VS Code слухає порт 9003
-2. Перевірте `pathMappings` в `launch.json`
-3. Перевірте firewall на хості
+1. Перевірте що `XDEBUG_ENABLED=1` в `.env`
+2. Перевірте що VS Code слухає порт 9003
+3. Перевірте `pathMappings` в `launch.json`
 
 ### Health check failing (Coolify)
 
-**Причина:** Контейнер ще запускається або є помилка
+**Причина:** Контейнер ще запускається (до 5 хвилин)
 
-**Рішення:** Перевірте логи в Coolify → Logs → opencart
+**Рішення:** Зачекайте або перевірте логи в Coolify → Logs → opencart
+
+### Налаштування скидаються при redeploy
+
+**Це виправлено.** Скрипт перевіряє таблиці в БД і не перевстановлює OpenCart якщо дані існують.
 
 ---
 
