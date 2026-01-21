@@ -3,6 +3,7 @@ set -e
 
 # OpenCart Docker Entrypoint Script
 # Fully automated installation and configuration
+# Supports redeploys without data loss
 
 echo "=============================================="
 echo "  OpenCart Docker - Automated Setup"
@@ -69,21 +70,111 @@ if [ $TRIES -eq $MAX_TRIES ]; then
     echo "      WARNING: Database not available after $MAX_TRIES attempts"
 fi
 
-# --- Auto-install OpenCart ---
-check_opencart_installed() {
-    if [ -f "/var/www/html/config.php" ] && grep -q "DB_HOSTNAME" /var/www/html/config.php 2>/dev/null; then
-        return 0
+# Wait a bit more for database to be fully ready
+sleep 3
+
+# --- Check if OpenCart is already installed (by checking database tables) ---
+check_database_installed() {
+    # Check if setting table exists in database
+    TABLES=$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" \
+        -e "SHOW TABLES LIKE '${DB_PREFIX}setting';" 2>/dev/null | grep -c "${DB_PREFIX}setting" || echo "0")
+
+    if [ "$TABLES" -gt 0 ]; then
+        return 0  # Database has OpenCart tables
     fi
-    return 1
+    return 1  # No OpenCart tables found
 }
 
-if check_opencart_installed; then
-    echo "[3/5] OpenCart already installed"
-else
-    echo "[3/5] Installing OpenCart automatically..."
+# --- Generate config.php from environment ---
+generate_config() {
+    echo "      Generating config.php..."
 
-    # Wait a bit more for database to be fully ready
-    sleep 5
+    cat > /var/www/html/config.php << EOFCONFIG
+<?php
+// HTTP
+define('HTTP_SERVER', '${OPENCART_URL}/');
+
+// HTTPS
+define('HTTPS_SERVER', '${OPENCART_URL}/');
+
+// DIR
+define('DIR_APPLICATION', '/var/www/html/catalog/');
+define('DIR_SYSTEM', '/var/www/html/system/');
+define('DIR_IMAGE', '/var/www/html/image/');
+define('DIR_STORAGE', '/var/www/storage/');
+define('DIR_LANGUAGE', DIR_APPLICATION . 'language/');
+define('DIR_TEMPLATE', DIR_APPLICATION . 'view/theme/');
+define('DIR_CONFIG', DIR_SYSTEM . 'config/');
+define('DIR_CACHE', DIR_STORAGE . 'cache/');
+define('DIR_DOWNLOAD', DIR_STORAGE . 'download/');
+define('DIR_LOGS', DIR_STORAGE . 'logs/');
+define('DIR_MODIFICATION', DIR_STORAGE . 'modification/');
+define('DIR_SESSION', DIR_STORAGE . 'session/');
+define('DIR_UPLOAD', DIR_STORAGE . 'upload/');
+
+// DB
+define('DB_DRIVER', 'mysqli');
+define('DB_HOSTNAME', '${DB_HOST}');
+define('DB_USERNAME', '${DB_USERNAME}');
+define('DB_PASSWORD', '${DB_PASSWORD}');
+define('DB_DATABASE', '${DB_DATABASE}');
+define('DB_PORT', '${DB_PORT}');
+define('DB_PREFIX', '${DB_PREFIX}');
+EOFCONFIG
+
+    cat > /var/www/html/admin/config.php << EOFADMINCONFIG
+<?php
+// HTTP
+define('HTTP_SERVER', '${OPENCART_URL}/admin/');
+define('HTTP_CATALOG', '${OPENCART_URL}/');
+
+// HTTPS
+define('HTTPS_SERVER', '${OPENCART_URL}/admin/');
+define('HTTPS_CATALOG', '${OPENCART_URL}/');
+
+// DIR
+define('DIR_APPLICATION', '/var/www/html/admin/');
+define('DIR_SYSTEM', '/var/www/html/system/');
+define('DIR_IMAGE', '/var/www/html/image/');
+define('DIR_STORAGE', '/var/www/storage/');
+define('DIR_CATALOG', '/var/www/html/catalog/');
+define('DIR_LANGUAGE', DIR_APPLICATION . 'language/');
+define('DIR_TEMPLATE', DIR_APPLICATION . 'view/template/');
+define('DIR_CONFIG', DIR_SYSTEM . 'config/');
+define('DIR_CACHE', DIR_STORAGE . 'cache/');
+define('DIR_DOWNLOAD', DIR_STORAGE . 'download/');
+define('DIR_LOGS', DIR_STORAGE . 'logs/');
+define('DIR_MODIFICATION', DIR_STORAGE . 'modification/');
+define('DIR_SESSION', DIR_STORAGE . 'session/');
+define('DIR_UPLOAD', DIR_STORAGE . 'upload/');
+
+// DB
+define('DB_DRIVER', 'mysqli');
+define('DB_HOSTNAME', '${DB_HOST}');
+define('DB_USERNAME', '${DB_USERNAME}');
+define('DB_PASSWORD', '${DB_PASSWORD}');
+define('DB_DATABASE', '${DB_DATABASE}');
+define('DB_PORT', '${DB_PORT}');
+define('DB_PREFIX', '${DB_PREFIX}');
+
+// OpenCart API
+define('OPENCART_SERVER', 'https://www.opencart.com/');
+EOFADMINCONFIG
+
+    chown www-data:www-data /var/www/html/config.php /var/www/html/admin/config.php
+    chmod 644 /var/www/html/config.php /var/www/html/admin/config.php
+    echo "      Done!"
+}
+
+# --- Auto-install or restore OpenCart ---
+echo "[3/5] Checking OpenCart installation..."
+
+if check_database_installed; then
+    echo "      Database has existing OpenCart tables"
+    echo "      Skipping installation, regenerating config files..."
+    generate_config
+else
+    echo "      Fresh installation required..."
 
     if [ -f "/var/www/html/install/cli_install.php" ]; then
         # Run CLI installer
@@ -103,13 +194,15 @@ else
 
         echo "$INSTALL_OUTPUT"
 
-        if [ "$INSTALL_SUCCESS" = true ] && check_opencart_installed; then
+        if [ "$INSTALL_SUCCESS" = true ] && check_database_installed; then
             echo "      Installation successful!"
         else
             echo "      WARNING: Installation may have failed. Check logs above."
         fi
     else
-        echo "      WARNING: CLI installer not found, manual installation required"
+        echo "      WARNING: CLI installer not found"
+        echo "      Generating config files anyway..."
+        generate_config
     fi
 fi
 
@@ -128,7 +221,7 @@ echo "      Done!"
 
 # --- Remove install directory ---
 echo "[5/5] Security cleanup..."
-if [ -d "/var/www/html/install" ] && check_opencart_installed; then
+if [ -d "/var/www/html/install" ]; then
     rm -rf /var/www/html/install
     echo "      Removed install directory"
 fi
