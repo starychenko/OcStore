@@ -1,44 +1,52 @@
 # OpenCart 3 (OcStore) Docker
 
-Повністю автоматизований Docker-образ для OpenCart 3 (OcStore v3.0.4.1). Задеплоїв — працює. Без ручних кроків.
+[![OcStore](https://img.shields.io/badge/OcStore-v3.0.4.1-blue.svg)](https://github.com/ocStore/ocStore)
+[![PHP](https://img.shields.io/badge/PHP-8.1--FPM-777BB4.svg)](https://www.php.net/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![Coolify](https://img.shields.io/badge/Coolify-Compatible-6B46C1.svg)](https://coolify.io/)
+[![License](https://img.shields.io/badge/License-GPL%20v3-green.svg)](LICENSE)
 
-## Можливості
+**Production-ready Docker image for OpenCart 3 (OcStore v3.0.4.1)**
 
-- **Автоматична інсталяція** — без веб-візарда
-- **Автоматичне налаштування storage** — безпечний шлях поза webroot
-- **Автоматичне видалення install/** — після успішної інсталяції
-- **Збереження даних при redeploy** — перевіряє БД, не перевстановлює
-- **Persistent volumes** — модулі, зображення та налаштування зберігаються
-- **Все через Environment Variables** — жодних ручних правок
-- **Готовий для Coolify** — Traefik labels, правильна структура
-- **OPcache + JIT** — максимальна продуктивність (PHP 8.1)
-- **Xdebug опціонально** — вмикається для розробки
+Deploy → Works. Zero manual configuration required.
 
-## Технології
+## Key Features
 
-| Компонент | Версія | Опис |
-|-----------|--------|------|
-| PHP | 8.1-FPM (Debian Bookworm) | gd, mysqli, zip, intl, opcache, bcmath, exif |
-| OPcache | + JIT | Tracing JIT для максимальної швидкості |
-| Xdebug | 3.x | Опціонально, вимкнено (несумісний з JIT) |
-| ionCube | Latest | Опціонально, вимкнено (несумісний з JIT) |
-| Nginx | Debian | SEO URLs, кешування, security headers |
-| MariaDB | 10.6 LTS | Оптимізовані налаштування InnoDB |
-| phpMyAdmin | Latest | Веб-інтерфейс для БД |
+| Feature | Description |
+|---------|-------------|
+| **Zero-touch Install** | Automatic installation without web wizard |
+| **Secure Storage** | Storage directory outside webroot |
+| **Data Persistence** | Modules, themes, images survive redeploys |
+| **Environment Config** | All settings via environment variables |
+| **Coolify Ready** | Traefik labels, proper health checks |
+| **JIT Performance** | OPcache + Tracing JIT enabled by default |
+| **Dev Tools** | Optional Xdebug & ionCube (disabled by default) |
+
+## Tech Stack
+
+| Component | Version | Details |
+|-----------|---------|---------|
+| **PHP** | 8.1-FPM | Debian Bookworm, gd, mysqli, zip, intl, bcmath, exif |
+| **OPcache** | + JIT | Tracing JIT (1255) for maximum performance |
+| **Nginx** | Latest | SEO URLs, gzip, static cache, security headers |
+| **MariaDB** | 10.6 LTS | Optimized InnoDB settings |
+| **Xdebug** | 3.x | Optional, disabled (incompatible with JIT) |
+| **ionCube** | Latest | Optional, disabled (incompatible with JIT) |
+| **phpMyAdmin** | Latest | Database management UI |
 
 ---
 
-## Швидкий старт (Coolify)
+## Quick Start / Швидкий старт
 
-### 1. Створити Application
+### Coolify Deployment
+
+**1. Створити Application**
 
 **Resources** → **Add New** → **Private Repository (GitHub)**
 
-### 2. Вибрати Build Pack
+**2. Вибрати Build Pack:** Docker Compose
 
-**Docker Compose**
-
-### 3. Додати Environment Variables
+**3. Додати Environment Variables**
 
 ```env
 DB_DATABASE=opencart
@@ -53,38 +61,51 @@ ADMIN_EMAIL=admin@yourdomain.com
 
 > **Важливо:** Не використовуйте спеціальні символи `$ # ! @ \` в паролях — вони інтерпретуються shell і обрізаються.
 
-### 4. Налаштувати домени
+**4. Налаштувати домени**
 
 | Сервіс | Домен |
 |--------|-------|
 | opencart | shop.yourdomain.com |
 | phpmyadmin | pma.yourdomain.com |
 
-### 5. Deploy
-
-Натиснути **Deploy**. Через 3-5 хвилин:
+**5. Deploy** → Натиснути **Deploy**. Через 3-5 хвилин:
 - Магазин: `https://shop.yourdomain.com`
 - Адмінка: `https://shop.yourdomain.com/admin`
 
 ---
 
-## Локальна розробка
-
-### 1. Клонувати
+### Local Development
 
 ```bash
+# 1. Clone
 git clone https://github.com/starychenko/OcStore.git
 cd OcStore
-```
 
-### 2. Створити .env
-
-```bash
+# 2. Configure
 cp .env.example .env
+# Edit .env with your settings
+
+# 3. Create docker-compose.override.yml for ports
+cat > docker-compose.override.yml << 'EOF'
+services:
+  opencart:
+    ports:
+      - "8080:80"
+  phpmyadmin:
+    ports:
+      - "8081:80"
+EOF
+
+# 4. Start
+docker compose up -d --build
 ```
 
-Відредагувати `.env`:
+**URLs:**
+- Store: http://localhost:8080
+- Admin: http://localhost:8080/admin
+- phpMyAdmin: http://localhost:8081
 
+**Example `.env` for development:**
 ```env
 DB_ROOT_PASSWORD=rootpass123
 DB_DATABASE=opencart
@@ -94,35 +115,8 @@ OPENCART_URL=http://localhost:8080
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ADMIN_EMAIL=admin@localhost.com
-
-# Для відладки в VS Code:
 XDEBUG_ENABLED=1
 ```
-
-### 3. Створити docker-compose.override.yml
-
-```yaml
-services:
-  opencart:
-    ports:
-      - "8080:80"
-
-  phpmyadmin:
-    ports:
-      - "8081:80"
-```
-
-### 4. Запустити
-
-```bash
-docker compose up -d --build
-```
-
-### 5. Готово
-
-- **Магазин:** http://localhost:8080
-- **Адмінка:** http://localhost:8080/admin
-- **phpMyAdmin:** http://localhost:8081
 
 ---
 
@@ -445,6 +439,14 @@ XDEBUG_ENABLED=0
 
 ---
 
-## Ліцензія
+## License
 
-OcStore — [GNU GPL v3.0](https://github.com/ocStore/ocStore/blob/master/license.txt)
+This Docker configuration is provided under the MIT License.
+
+OcStore itself is licensed under [GNU GPL v3.0](https://github.com/ocStore/ocStore/blob/master/license.txt).
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome at [GitHub](https://github.com/starychenko/OcStore).
