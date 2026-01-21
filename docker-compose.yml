@@ -15,6 +15,8 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_PREFIX=${DB_PREFIX:-oc_}
       - OPENCART_URL=${OPENCART_URL:-http://localhost}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
     volumes:
       - opencart_storage:/var/www/storage
