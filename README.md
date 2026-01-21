@@ -4,18 +4,21 @@
 
 ## Можливості
 
-- ✅ **Автоматична інсталяція** — без веб-візарда
-- ✅ **Автоматичне налаштування storage** — безпечний шлях поза webroot
-- ✅ **Автоматичне видалення install/** — після успішної інсталяції
-- ✅ **Все через Environment Variables** — жодних ручних правок
-- ✅ **Готовий для Coolify** — Traefik labels, правильна структура
+- **Автоматична інсталяція** — без веб-візарда
+- **Автоматичне налаштування storage** — безпечний шлях поза webroot
+- **Автоматичне видалення install/** — після успішної інсталяції
+- **Все через Environment Variables** — жодних ручних правок
+- **Готовий для Coolify** — Traefik labels, правильна структура
+- **Середовище для розробки** — Xdebug, ionCube, відображення помилок
 
 ## Технології
 
 | Компонент | Версія | Опис |
 |-----------|--------|------|
-| PHP | 8.1-FPM | Всі необхідні розширення |
-| Nginx | Alpine | SEO URLs, кешування, security headers |
+| PHP | 8.1-FPM (Debian Bookworm) | gd, mysqli, zip, intl, opcache, bcmath, exif |
+| Xdebug | 3.x | Debug + Develop modes |
+| ionCube | Latest | Loader для закодованих модулів |
+| Nginx | Debian | SEO URLs, кешування, security headers |
 | MariaDB | 10.6 LTS | Оптимізовані налаштування InnoDB |
 | phpMyAdmin | Latest | Веб-інтерфейс для БД |
 
@@ -44,7 +47,7 @@ ADMIN_PASSWORD=YourSecureAdminPassword
 ADMIN_EMAIL=admin@yourdomain.com
 ```
 
-> ⚠️ **Важливо:** Не використовуйте спеціальні символи `$ # ! @ \` в паролях — вони інтерпретуються shell і обрізаються.
+> **Важливо:** Не використовуйте спеціальні символи `$ # ! @ \` в паролях — вони інтерпретуються shell і обрізаються.
 
 ### 4. Налаштувати домени
 
@@ -55,7 +58,7 @@ ADMIN_EMAIL=admin@yourdomain.com
 
 ### 5. Deploy
 
-Натиснути **Deploy**. Через 2-3 хвилини:
+Натиснути **Deploy**. Через 3-5 хвилин:
 - Магазин: `https://shop.yourdomain.com`
 - Адмінка: `https://shop.yourdomain.com/admin`
 
@@ -116,6 +119,46 @@ docker compose up -d --build
 
 ---
 
+## Xdebug (VS Code)
+
+Xdebug вже налаштований і працює. Для підключення VS Code створіть `.vscode/launch.json`:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Listen for Xdebug",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "pathMappings": {
+                "/var/www/html": "${workspaceFolder}"
+            }
+        }
+    ]
+}
+```
+
+**Налаштування Xdebug:**
+- Mode: `debug,develop`
+- Port: `9003`
+- IDE Key: `VSCODE`
+- Host: `host.docker.internal`
+
+---
+
+## ionCube Loader
+
+ionCube Loader встановлений для підтримки закодованих PHP модулів та розширень OpenCart.
+
+Перевірити роботу:
+```bash
+docker exec ocstore-opencart-1 php -m | grep ionCube
+```
+
+---
+
 ## Environment Variables
 
 ### Обов'язкові
@@ -143,13 +186,13 @@ docker compose up -d --build
 
 ```
 OcStore/
-├── Dockerfile                  # PHP 8.1-FPM + Nginx + OcStore
+├── Dockerfile                  # PHP 8.1-FPM (Debian) + Nginx + Xdebug + ionCube
 ├── docker-compose.yml          # Production конфігурація
 ├── .env.example                # Приклад змінних
 └── docker/
     ├── nginx/default.conf      # Nginx: SEO URLs, кеш, безпека
     ├── php/
-    │   ├── php.ini             # PHP: OPcache, ліміти, безпека
+    │   ├── php.ini             # PHP: OPcache, Xdebug, development settings
     │   └── php-fpm.conf        # PHP-FPM pool
     ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache
     ├── supervisor/supervisord.conf
@@ -172,9 +215,19 @@ OcStore/
 
 ---
 
-## Оптимізації
+## PHP Налаштування
 
-### PHP
+### Production vs Development
+
+Поточна конфігурація оптимізована для **розробки**:
+
+| Параметр | Значення | Опис |
+|----------|----------|------|
+| `display_errors` | On | Показувати помилки |
+| `error_reporting` | E_ALL | Всі помилки |
+| `xdebug.mode` | debug,develop | Відладка + помічники |
+
+### Ліміти
 
 | Параметр | Значення |
 |----------|----------|
@@ -204,17 +257,19 @@ OcStore/
 
 ### Включено
 
-- ✅ Storage поза webroot (`/var/www/storage/`)
-- ✅ Заборонено виконання PHP в `/image/` та `/storage/`
-- ✅ Закритий доступ до `.tpl`, `.ini`, `.log` файлів
-- ✅ Security headers (X-Frame-Options, X-Content-Type-Options)
-- ✅ Небезпечні PHP функції вимкнені
+- Storage поза webroot (`/var/www/storage/`)
+- Заборонено виконання PHP в `/image/` та `/storage/`
+- Закритий доступ до `.tpl`, `.ini`, `.log` файлів
+- Security headers (X-Frame-Options, X-Content-Type-Options)
+- Небезпечні PHP функції вимкнені
 
-### Рекомендації
+### Рекомендації для Production
 
-1. Використовуйте надійні паролі (12+ символів)
-2. Обмежте доступ до phpMyAdmin в production
-3. Регулярно оновлюйте Docker образи
+1. Вимкніть `display_errors` в `php.ini`
+2. Змініть `xdebug.mode` на `off` або видаліть Xdebug
+3. Використовуйте надійні паролі (12+ символів)
+4. Обмежте доступ до phpMyAdmin
+5. Регулярно оновлюйте Docker образи
 
 ---
 
@@ -235,6 +290,12 @@ docker compose down -v
 
 # Перезбірка
 docker compose up -d --build
+
+# Перевірити PHP модулі
+docker exec ocstore-opencart-1 php -m
+
+# Перевірити Xdebug
+docker exec ocstore-opencart-1 php -v
 ```
 
 ---
@@ -249,13 +310,25 @@ docker compose up -d --build
 
 ### Білий екран / 500 помилка
 
-**Причина:** Неправильний шлях storage
+**Причина:** Неправильний шлях storage або помилка PHP
 
 **Рішення:** Перевірте логи `docker compose logs opencart`
 
 ### phpMyAdmin не працює
 
 **Логін:** користувач `opencart` або `root` з відповідними паролями
+
+### Xdebug не підключається
+
+1. Перевірте, що VS Code слухає порт 9003
+2. Перевірте `pathMappings` в `launch.json`
+3. Перевірте firewall на хості
+
+### Health check failing (Coolify)
+
+**Причина:** Контейнер ще запускається або є помилка
+
+**Рішення:** Перевірте логи в Coolify → Logs → opencart
 
 ---
 
