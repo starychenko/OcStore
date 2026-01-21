@@ -24,6 +24,11 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 # --- Create directories ---
 mkdir -p /var/log/nginx /var/log/php /var/log/supervisor /run/nginx
 
+# Create xdebug log file with proper permissions
+touch /var/log/php/xdebug.log
+chown www-data:www-data /var/log/php/xdebug.log
+chmod 666 /var/log/php/xdebug.log
+
 # Storage directories (secure location outside webroot)
 STORAGE_DIRS="cache download logs modification session upload"
 for dir in $STORAGE_DIRS; do

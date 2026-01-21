@@ -53,15 +53,9 @@ RUN apk add --no-cache --virtual .build-deps \
     && docker-php-ext-enable xdebug \
     && apk del .build-deps
 
-# Install ionCube Loader
-# Note: ionCube requires glibc, so we install compatibility layer
-RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/testing gcompat \
-    && curl -o /tmp/ioncube.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz \
-    && tar -xzf /tmp/ioncube.tar.gz -C /tmp \
-    && PHP_EXT_DIR=$(php -r "echo ini_get('extension_dir');") \
-    && cp /tmp/ioncube/ioncube_loader_lin_8.1.so "$PHP_EXT_DIR/ioncube_loader.so" \
-    && echo "zend_extension=ioncube_loader.so" > /usr/local/etc/php/conf.d/00-ioncube.ini \
-    && rm -rf /tmp/ioncube*
+# NOTE: ionCube Loader is NOT compatible with Alpine Linux (musl)
+# If you need ionCube, switch to php:8.1-fpm (Debian-based) image
+# For now, ionCube is disabled to prevent segmentation faults
 
 # Create necessary directories
 RUN mkdir -p /var/www/html \
