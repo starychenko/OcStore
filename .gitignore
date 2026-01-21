@@ -33,3 +33,4 @@ temp/
 *.backup
 *.sql
 *.sql.gz
+deployment-*.txt

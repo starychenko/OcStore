@@ -1,38 +1,39 @@
 # OpenCart 3 (OcStore) Docker Image
-# PHP 8.1-FPM + Nginx + All required extensions
+# PHP 8.1-FPM (Debian Bookworm) + Nginx + All required extensions + Xdebug + ionCube
 
-FROM php:8.1-fpm-alpine AS base
+FROM php:8.1-fpm-bookworm AS base
 
-# Install system dependencies
-RUN apk add --no-cache \
+# Install system dependencies and runtime libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     supervisor \
     curl \
-    libpng \
-    libjpeg-turbo \
-    libwebp \
-    freetype \
-    libzip \
-    icu \
-    libxml2 \
-    oniguruma \
     unzip \
     git \
-    mysql-client \
-    bind-tools
+    default-mysql-client \
+    dnsutils \
+    netcat-openbsd \
+    # Runtime libraries for PHP extensions
+    libpng16-16 \
+    libjpeg62-turbo \
+    libwebp7 \
+    libfreetype6 \
+    libzip4 \
+    libicu72 \
+    libxml2 \
+    libonig5 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install build dependencies and PHP extensions
-RUN apk add --no-cache --virtual .build-deps \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
-    libjpeg-turbo-dev \
+    libjpeg62-turbo-dev \
     libwebp-dev \
-    freetype-dev \
+    libfreetype6-dev \
     libzip-dev \
-    icu-dev \
+    libicu-dev \
     libxml2-dev \
-    oniguruma-dev \
-    linux-headers \
-    $PHPIZE_DEPS \
+    libonig-dev \
     && docker-php-ext-configure gd \
         --with-freetype \
         --with-jpeg \
@@ -51,11 +52,26 @@ RUN apk add --no-cache --virtual .build-deps \
     # Install Xdebug
     && pecl install xdebug \
     && docker-php-ext-enable xdebug \
-    && apk del .build-deps
+    # Cleanup build dependencies only
+    && apt-get purge -y \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libwebp-dev \
+        libfreetype6-dev \
+        libzip-dev \
+        libicu-dev \
+        libxml2-dev \
+        libonig-dev \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# NOTE: ionCube Loader is NOT compatible with Alpine Linux (musl)
-# If you need ionCube, switch to php:8.1-fpm (Debian-based) image
-# For now, ionCube is disabled to prevent segmentation faults
+# Install ionCube Loader
+RUN curl -o /tmp/ioncube.tar.gz https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz \
+    && tar -xzf /tmp/ioncube.tar.gz -C /tmp \
+    && PHP_EXT_DIR=$(php -r "echo ini_get('extension_dir');") \
+    && cp /tmp/ioncube/ioncube_loader_lin_8.1.so "$PHP_EXT_DIR/ioncube_loader.so" \
+    && echo "zend_extension=ioncube_loader.so" > /usr/local/etc/php/conf.d/00-ioncube.ini \
+    && rm -rf /tmp/ioncube*
 
 # Create necessary directories
 RUN mkdir -p /var/www/html \
@@ -63,8 +79,11 @@ RUN mkdir -p /var/www/html \
     && mkdir -p /var/log/php \
     && mkdir -p /run/nginx
 
+# Remove default nginx config
+RUN rm -f /etc/nginx/sites-enabled/default
+
 # Copy configuration files
-COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx/default.conf /etc/nginx/sites-enabled/default
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
