@@ -63,6 +63,21 @@ services:
       start_period: 30s
     # Internal service - not exposed to internet
 
+  # FileBrowser (Web File Manager)
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    environment:
+      - PUID=33
+      - PGID=33
+    volumes:
+      - opencart_html:/srv/html
+      - opencart_storage:/srv/storage
+      - filebrowser_data:/database
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+
   # phpMyAdmin (Database Management)
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
@@ -86,4 +101,6 @@ volumes:
   opencart_html:
     driver: local
   mariadb_data:
+    driver: local
+  filebrowser_data:
     driver: local

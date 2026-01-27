@@ -209,6 +209,7 @@ define('DB_PREFIX', '${DB_PREFIX}');
 
 // OpenCart API
 define('OPENCART_SERVER', 'https://www.opencart.com/');
+define('OPENCARTFORUM_SERVER', 'https://opencartforum.com/');
 EOFADMINCONFIG
 
     chown www-data:www-data /var/www/html/config.php /var/www/html/admin/config.php
