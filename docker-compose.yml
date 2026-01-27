@@ -45,6 +45,8 @@ services:
   mariadb:
     image: mariadb:10.6
     hostname: mariadb
+    ports:
+      - "${DB_EXTERNAL_PORT:-3306}:3306"  # External access (set DB_EXTERNAL_PORT in .env)
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_DATABASE:-opencart}
