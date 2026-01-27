@@ -75,14 +75,14 @@ services:
       - filebrowser_data:/config
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "80"]
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=8080"
 
   # phpMyAdmin (Database Management)
   phpmyadmin:
