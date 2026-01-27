@@ -33,6 +33,7 @@
 | **Xdebug** | 3.x | Опціонально, вимкнено (несумісний з JIT) |
 | **ionCube** | Latest | Опціонально, вимкнено (несумісний з JIT) |
 | **phpMyAdmin** | Latest | Веб-інтерфейс для БД |
+| **FileBrowser** | Latest | Веб-файловий менеджер |
 
 ---
 
@@ -67,10 +68,12 @@ ADMIN_EMAIL=admin@yourdomain.com
 |--------|-------|
 | opencart | shop.yourdomain.com |
 | phpmyadmin | pma.yourdomain.com |
+| filebrowser | files.yourdomain.com |
 
 **5. Deploy** → Натиснути **Deploy**. Через 3-5 хвилин:
 - Магазин: `https://shop.yourdomain.com`
 - Адмінка: `https://shop.yourdomain.com/admin`
+- FileBrowser: `https://files.yourdomain.com` (пароль в логах)
 
 ---
 
@@ -94,6 +97,9 @@ services:
   phpmyadmin:
     ports:
       - "8081:80"
+  filebrowser:
+    ports:
+      - "8082:8080"
 EOF
 
 # 4. Запустити
@@ -104,6 +110,7 @@ docker compose up -d --build
 - Магазин: http://localhost:8080
 - Адмінка: http://localhost:8080/admin
 - phpMyAdmin: http://localhost:8081
+- FileBrowser: http://localhost:8082 (логін: admin, пароль в логах)
 
 **Приклад `.env` для розробки:**
 ```env
@@ -117,6 +124,52 @@ ADMIN_PASSWORD=admin123
 ADMIN_EMAIL=admin@localhost.com
 XDEBUG_ENABLED=1
 ```
+
+---
+
+## FileBrowser (Файловий менеджер)
+
+FileBrowser надає веб-інтерфейс для управління файлами OpenCart.
+
+### Доступ
+
+| Середовище | URL |
+|------------|-----|
+| Coolify | `https://files.yourdomain.com` |
+| Локально | `http://localhost:8082` |
+
+### Credentials
+
+- **Логін:** `admin`
+- **Пароль:** Генерується автоматично при першому запуску
+
+Пароль можна знайти в логах контейнера:
+```
+User 'admin' initialized with randomly generated password: xPAY_bedXiKZhTS9
+```
+
+В Coolify: **Logs** → **filebrowser**
+
+### Структура файлів
+
+```
+/data/
+  ├── html/      ← /var/www/html (код OpenCart)
+  │   ├── admin/
+  │   ├── catalog/
+  │   ├── image/
+  │   └── system/
+  │
+  └── storage/   ← /var/www/storage (uploads, cache, logs)
+      ├── cache/
+      ├── download/
+      ├── logs/
+      └── upload/
+```
+
+### Скидання пароля
+
+Видаліть volume `filebrowser_data` і зробіть redeploy — буде згенеровано новий пароль.
 
 ---
 
@@ -248,6 +301,7 @@ OcStore/
 | `opencart_html` | `/var/www/html` | Весь код OpenCart, модулі, теми |
 | `opencart_storage` | `/var/www/storage` | Кеш, сесії, логи, завантаження |
 | `mariadb_data` | `/var/lib/mysql` | База даних |
+| `filebrowser_data` | `/config` | Налаштування та БД FileBrowser |
 
 **Це означає:**
 - ✅ Встановлені модулі зберігаються

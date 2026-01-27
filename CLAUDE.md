@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OcStore is a fully automated Docker-based deployment for OpenCart 3 (v3.0.4.1). It provides production-ready infrastructure with Coolify-compatible configuration.
 
-**Stack:** PHP 8.1-FPM (Debian), Nginx, MariaDB 10.6, Supervisor, OPcache+JIT, Xdebug (optional), ionCube Loader
+**Stack:** PHP 8.1-FPM (Debian), Nginx, MariaDB 10.6, Supervisor, OPcache+JIT, Xdebug (optional), ionCube Loader, FileBrowser
 
 ## Build & Run Commands
 
@@ -37,18 +37,19 @@ docker exec -it ocstore-opencart-1 bash
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Docker Compose                         │
-├─────────────────┬─────────────────┬─────────────────────┤
-│   opencart      │    mariadb      │    phpmyadmin       │
-│   (PHP+Nginx)   │    (Database)   │    (DB UI)          │
-│   Port 80       │    Port 3306    │    Port 80          │
-│                 │    (internal)   │                     │
-└────────┬────────┴────────┬────────┴─────────────────────┘
-         │                 │
-    Volumes:          Volume:
-    - opencart_storage    - mariadb_data
-    - opencart_images
+┌──────────────────────────────────────────────────────────────────────┐
+│                          Docker Compose                               │
+├─────────────────┬─────────────────┬───────────────┬──────────────────┤
+│   opencart      │    mariadb      │  phpmyadmin   │   filebrowser    │
+│   (PHP+Nginx)   │    (Database)   │   (DB UI)     │  (File Manager)  │
+│   Port 80       │    Port 3306    │   Port 80     │   Port 8080      │
+│                 │    (internal)   │               │                  │
+└────────┬────────┴────────┬────────┴───────────────┴────────┬─────────┘
+         │                 │                                  │
+    Volumes:          Volume:                            Volumes:
+    - opencart_storage    - mariadb_data                 - opencart_html:/data/html
+    - opencart_html                                      - opencart_storage:/data/storage
+                                                         - filebrowser_data:/config
 ```
 
 **Container Initialization Flow** (`docker/entrypoint.sh`):
@@ -106,5 +107,16 @@ Xdebug and JIT are incompatible. Xdebug is **disabled by default** for productio
 
 1. Docker Compose build pack
 2. Set environment variables in Coolify UI
-3. Configure domains (Traefik labels are pre-configured)
+3. Configure domains:
+   - `opencart` → shop.example.com
+   - `phpmyadmin` → pma.example.com
+   - `filebrowser` → files.example.com
 4. Deploy - fully automated in 3-5 minutes
+
+## FileBrowser
+
+- **Image:** `hurlenko/filebrowser`
+- **Internal port:** 8080
+- **Credentials:** admin / (random password in logs)
+- **Volumes:** Shares `opencart_html` and `opencart_storage` with OpenCart container
+- **Access in container:** `/data/html` and `/data/storage`
