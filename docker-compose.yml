@@ -64,27 +64,25 @@ services:
     # Internal service - not exposed to internet
 
   # FileBrowser (Web File Manager)
-  # Login: admin / admin (change after first login!)
+  # Login: admin / password from logs (randomly generated on first start)
   # Using hurlenko/filebrowser - supports env vars configuration
   filebrowser:
     image: hurlenko/filebrowser
     user: "0:0"
-    environment:
-      - FB_BASEURL=/
     volumes:
       - opencart_html:/data/html
       - opencart_storage:/data/storage
       - filebrowser_data:/config
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      test: ["CMD", "nc", "-z", "localhost", "80"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.filebrowser.loadbalancer.server.port=8080"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
 
   # phpMyAdmin (Database Management)
   phpmyadmin:
