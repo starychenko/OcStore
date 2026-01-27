@@ -72,9 +72,19 @@ services:
       - opencart_html:/srv/html
       - opencart_storage:/srv/storage
       - filebrowser_data:/database
-      - ./docker/filebrowser/init.sh:/init.sh:ro
     entrypoint: /bin/sh
-    command: /init.sh
+    command: >
+      -c '
+      DB=/database/filebrowser.db;
+      if [ ! -f "$$DB" ]; then
+        echo "Initializing FileBrowser...";
+        filebrowser config init --database "$$DB";
+        filebrowser config set --database "$$DB" --address 0.0.0.0 --port 80 --root /srv;
+        filebrowser users add admin admin --database "$$DB" --perm.admin;
+        echo "Created user: admin / admin";
+      fi;
+      exec filebrowser --database "$$DB"
+      '
     restart: unless-stopped
     labels:
       - "traefik.enable=true"

@@ -14,7 +14,8 @@
       "Bash(git rm:*)",
       "Bash(docker exec:*)",
       "Bash(docker logs:*)",
-      "Bash(gh release create:*)"
+      "Bash(gh release create:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix FileBrowser init - embed script in command\n\nRemove external init.sh file that caused mount errors in Coolify.\nInline the initialization script directly in docker-compose command.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
