@@ -72,20 +72,25 @@ services:
       - opencart_html:/srv/html
       - opencart_storage:/srv/storage
       - filebrowser_data:/database
-    entrypoint: /bin/sh
-    command: >
-      -c '
-      DB=/database/filebrowser.db;
-      if [ ! -f "$$DB" ]; then
-        echo "Initializing FileBrowser...";
-        filebrowser config init --database "$$DB";
-        filebrowser config set --database "$$DB" --address 0.0.0.0 --port 80 --root /srv;
-        filebrowser users add admin admin --database "$$DB" --perm.admin;
-        echo "Created user: admin / admin";
-      fi;
-      exec filebrowser --database "$$DB"
-      '
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        DB=/database/filebrowser.db
+        if [ ! -f "$${DB}" ]; then
+          echo "Initializing FileBrowser..."
+          /filebrowser config init --database "$${DB}"
+          /filebrowser config set --database "$${DB}" --address 0.0.0.0 --port 80 --root /srv
+          /filebrowser users add admin admin --database "$${DB}" --perm.admin
+          echo "Created user: admin / admin"
+        fi
+        exec /filebrowser --database "$${DB}"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
