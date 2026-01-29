@@ -70,7 +70,7 @@ services:
   # Using hurlenko/filebrowser - supports env vars configuration
   filebrowser:
     image: hurlenko/filebrowser
-    user: "0:0"
+    user: "33:33"  # www-data - files will have correct permissions for PHP
     volumes:
       - opencart_html:/data/html
       - opencart_storage:/data/storage
