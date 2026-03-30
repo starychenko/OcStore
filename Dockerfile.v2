@@ -89,7 +89,7 @@ RUN curl -L https://github.com/myopencart/ocStore/archive/refs/tags/v${OCSTORE_V
     && rm -rf /tmp/ocstore.zip /tmp/ocStore-${OCSTORE_VERSION}
 
 # Create storage directory structure
-# OcStore 2.3: no session/ or vendor/ directories
+# OcStore 2.3: no vendor/ directory (session/ needed for PHP-FPM session.save_path)
 RUN mkdir -p /var/www/storage/cache \
     && mkdir -p /var/www/storage/download \
     && mkdir -p /var/www/storage/logs \
@@ -99,6 +99,7 @@ RUN mkdir -p /var/www/storage/cache \
     && mkdir -p /var/www/html-dist/system/storage/download \
     && mkdir -p /var/www/html-dist/system/storage/logs \
     && mkdir -p /var/www/html-dist/system/storage/modification \
+    && mkdir -p /var/www/html-dist/system/storage/session \
     && mkdir -p /var/www/html-dist/system/storage/upload \
     && mkdir -p /var/www/html-dist/image/cache \
     && mkdir -p /var/www/html-dist/image/catalog

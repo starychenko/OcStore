@@ -60,11 +60,16 @@ else
 fi
 
 # Storage directories (secure location outside webroot)
-# OcStore 2.3: no session/ or vendor/ directories
-STORAGE_DIRS="cache download logs modification upload"
+# OcStore 2.3: no vendor/ directory (session/ needed for PHP-FPM session.save_path)
+STORAGE_DIRS="cache download logs modification session upload"
 for dir in $STORAGE_DIRS; do
     mkdir -p "/var/www/storage/$dir"
 done
+
+# Session directory (required by shared php-fpm.conf session.save_path)
+mkdir -p /var/www/html/system/storage/session
+chown www-data:www-data /var/www/html/system/storage/session
+chmod 777 /var/www/html/system/storage/session
 
 # Image directories
 mkdir -p /var/www/html/image/cache /var/www/html/image/catalog
@@ -233,6 +238,8 @@ else
 
         if [ "$INSTALL_SUCCESS" = true ] && check_database_installed; then
             echo "      Installation successful!"
+            # Regenerate config with correct storage paths (CLI installer uses in-webroot paths)
+            generate_config
         else
             echo "      WARNING: Installation may have failed. Check logs above."
         fi
