@@ -1,5 +1,7 @@
-# Docker Compose for OpenCart 3 (OcStore) - Optimized for Coolify
+# Docker Compose for OpenCart (OcStore) - Optimized for Coolify
 # Deploy via Coolify from private GitHub repository
+# IMPORTANT: When running multiple instances, set unique COMPOSE_SERVICE_NAME
+# in each deployment to avoid Traefik routing conflicts
 
 services:
   # OpenCart Application (PHP-FPM + Nginx)
@@ -39,7 +41,7 @@ services:
       start_period: 300s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.opencart.loadbalancer.server.port=80"
+      - "traefik.http.services.${COMPOSE_SERVICE_NAME:-opencart}.loadbalancer.server.port=80"
 
   # MariaDB Database
   mariadb:
@@ -84,7 +86,7 @@ services:
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.filebrowser.loadbalancer.server.port=8080"
+      - "traefik.http.services.${COMPOSE_SERVICE_NAME:-opencart}-files.loadbalancer.server.port=8080"
 
   # phpMyAdmin (Database Management)
   phpmyadmin:
@@ -101,7 +103,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+      - "traefik.http.services.${COMPOSE_SERVICE_NAME:-opencart}-pma.loadbalancer.server.port=80"
 
 volumes:
   opencart_storage:
