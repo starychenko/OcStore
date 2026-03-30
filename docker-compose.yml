@@ -6,7 +6,7 @@ services:
   opencart:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     environment:
       - DB_HOST=mariadb
       - DB_PORT=3306
