@@ -4,15 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OcStore is a fully automated Docker-based deployment for OpenCart 3 (v3.0.4.1). It provides production-ready infrastructure with Coolify-compatible configuration.
+OcStore is a fully automated Docker-based deployment for OpenCart (OcStore). Supports two versions via optional build selection:
 
-**Stack:** PHP 8.1-FPM (Debian), Nginx, MariaDB 10.6, Supervisor, OPcache+JIT, Xdebug (optional), ionCube Loader, FileBrowser
+- **OcStore 3.x** (v3.0.4.1) — default, PHP 8.1-FPM, OPcache+JIT, ionCube, Xdebug
+- **OcStore 2.3** (v2.3.0.2.4) — optional, PHP 7.2-FPM, OPcache, Xdebug
+
+Production-ready infrastructure with Coolify-compatible configuration.
+
+**Stack (v3):** PHP 8.1-FPM (Debian Bookworm), Nginx, MariaDB 10.6, Supervisor, OPcache+JIT, Xdebug (optional), ionCube Loader, FileBrowser
+**Stack (v2.3):** PHP 7.2-FPM (Debian Buster), Nginx, MariaDB 10.6, Supervisor, OPcache, Xdebug (optional), FileBrowser
 
 ## Build & Run Commands
 
 ```bash
-# Local development
+# Local development (OcStore 3.x — default)
 cp .env.example .env
+docker compose up -d --build
+
+# Local development (OcStore 2.3)
+# Set DOCKERFILE=Dockerfile.v2 in .env, then:
 docker compose up -d --build
 
 # View logs
@@ -27,7 +37,7 @@ docker compose down -v
 # Check PHP extensions
 docker exec ocstore-opencart-1 php -m
 
-# Check JIT status
+# Check JIT status (v3 only)
 docker exec ocstore-opencart-1 php -r "var_dump(opcache_get_status()['jit']);"
 
 # Execute command in container
@@ -52,14 +62,14 @@ docker exec -it ocstore-opencart-1 bash
                                                          - filebrowser_data:/config
 ```
 
-**Container Initialization Flow** (`docker/entrypoint.sh`):
-1. Toggle Xdebug based on `XDEBUG_ENABLED` env var
+**Container Initialization Flow** (`docker/entrypoint.sh` for v3, `docker/entrypoint.v2.sh` for v2.3):
+1. Toggle Xdebug based on `XDEBUG_ENABLED` env var (v3 also toggles ionCube)
 2. Create storage directories (`/var/www/storage/`)
 3. Wait for database (30 attempts × 2s)
 4. Check if OpenCart installed (query `{DB_PREFIX}setting` table)
    - If tables exist → regenerate config.php only (no reinstall)
    - If fresh → run CLI installer
-5. Generate `config.php` files with env vars
+5. Generate `config.php` files with env vars (v2.3 uses different config format)
 6. Remove `/install/` directory for security
 
 **Key Paths:**
@@ -71,17 +81,22 @@ docker exec -it ocstore-opencart-1 bash
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` | PHP 8.1-FPM image with extensions |
-| `docker-compose.yml` | Service definitions, health checks |
-| `docker/entrypoint.sh` | Auto-install, config generation, Xdebug toggle |
-| `docker/nginx/default.conf` | SEO URLs, caching, security headers |
-| `docker/php/php.ini` | OPcache, JIT, Xdebug settings |
-| `docker/php/php-fpm.conf` | Worker pool configuration |
-| `docker/mariadb/my.cnf` | InnoDB optimization |
+| `Dockerfile` | OcStore 3.x — PHP 8.1-FPM image with extensions |
+| `Dockerfile.v2` | OcStore 2.3 — PHP 7.2-FPM image with extensions |
+| `docker-compose.yml` | Service definitions, health checks, version selection via `DOCKERFILE` |
+| `docker/entrypoint.sh` | v3: auto-install, config generation, Xdebug/ionCube toggle |
+| `docker/entrypoint.v2.sh` | v2.3: auto-install, v2.3 config format, Xdebug toggle |
+| `docker/nginx/default.conf` | SEO URLs, caching, security headers (shared) |
+| `docker/php/php.ini` | v3: OPcache, JIT, Xdebug settings |
+| `docker/php/php.v2.ini` | v2.3: OPcache (no JIT), Xdebug settings |
+| `docker/php/php-fpm.conf` | Worker pool configuration (shared) |
+| `docker/mariadb/my.cnf` | InnoDB optimization (shared) |
 
 ## Environment Variables
 
 **Required:** `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `OPENCART_URL`, `ADMIN_PASSWORD`
+
+**Version selection:** `DOCKERFILE=Dockerfile` (v3, default) or `DOCKERFILE=Dockerfile.v2` (v2.3)
 
 **Optional:** `DB_DATABASE=opencart`, `DB_USERNAME=opencart`, `DB_PREFIX=oc_`, `ADMIN_USERNAME=admin`, `ADMIN_EMAIL=admin@example.com`, `XDEBUG_ENABLED=0`
 
@@ -89,12 +104,16 @@ docker exec -it ocstore-opencart-1 bash
 
 ## Xdebug vs JIT
 
-Xdebug and JIT are incompatible. Xdebug is **disabled by default** for production performance.
+Xdebug and JIT are incompatible (v3 only — v2.3 has no JIT). Xdebug is **disabled by default** for production performance.
+
+**OcStore 3.x:**
 
 | XDEBUG_ENABLED | Xdebug | JIT | Use Case |
 |----------------|--------|-----|----------|
 | `0` (default) | Off | On | Production |
 | `1` | On | Off | Development debugging |
+
+**OcStore 2.3:** JIT unavailable (PHP 7.2). Xdebug toggle works the same way. No ionCube support.
 
 ## Key Behaviors
 

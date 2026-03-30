@@ -1,12 +1,17 @@
-# OpenCart 3 (OcStore) Docker
+# OpenCart (OcStore) Docker
 
-[![OcStore](https://img.shields.io/badge/OcStore-v3.0.4.1-blue.svg)](https://github.com/ocStore/ocStore/releases/tag/v3.0.4.1)
-[![PHP](https://img.shields.io/badge/PHP-8.1--FPM-777BB4.svg)](https://www.php.net/)
+[![OcStore 3](https://img.shields.io/badge/OcStore-v3.0.4.1-blue.svg)](https://github.com/ocStore/ocStore/releases/tag/v3.0.4.1)
+[![OcStore 2.3](https://img.shields.io/badge/OcStore-v2.3.0.2.4-blue.svg)](https://github.com/myopencart/ocStore/releases/tag/v2.3.0.2.4)
+[![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%207.2-777BB4.svg)](https://www.php.net/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 [![Coolify](https://img.shields.io/badge/Coolify-Compatible-6B46C1.svg)](https://coolify.io/)
 [![License](https://img.shields.io/badge/License-GPL%20v3-green.svg)](LICENSE)
 
-**Production-ready Docker образ для OpenCart 3 (OcStore v3.0.4.1)**
+**Production-ready Docker образ для OpenCart (OcStore)**
+
+Підтримує дві версії:
+- **OcStore 3.x** (v3.0.4.1) — PHP 8.1, OPcache+JIT, ionCube, Xdebug *(за замовчуванням)*
+- **OcStore 2.3** (v2.3.0.2.4) — PHP 7.2, OPcache, Xdebug *(опціонально)*
 
 Задеплоїв → Працює. Без ручних налаштувань.
 
@@ -14,24 +19,40 @@
 
 | Функція | Опис |
 |---------|------|
+| **Дві версії OcStore** | v3.0.4.1 (PHP 8.1) та v2.3.0.2.4 (PHP 7.2) |
 | **Автоматична інсталяція** | Без веб-візарда, все автоматично |
 | **Безпечний storage** | Директорія storage поза webroot |
 | **Збереження даних** | Модулі, теми, зображення зберігаються при redeploy |
 | **Environment Variables** | Всі налаштування через змінні оточення |
 | **Coolify Ready** | Traefik labels, health checks |
-| **JIT продуктивність** | OPcache + Tracing JIT увімкнено |
-| **Dev інструменти** | Xdebug та ionCube опціонально |
+| **JIT продуктивність** | OPcache + Tracing JIT увімкнено (v3) |
+| **Dev інструменти** | Xdebug та ionCube (v3) опціонально |
 
 ## Технології
+
+### OcStore 3.x (за замовчуванням)
 
 | Компонент | Версія | Деталі |
 |-----------|--------|--------|
 | **PHP** | 8.1-FPM | Debian Bookworm, gd, mysqli, zip, intl, bcmath, exif |
 | **OPcache** | + JIT | Tracing JIT (1255) для максимальної швидкості |
-| **Nginx** | Latest | SEO URLs, gzip, кешування, security headers |
-| **MariaDB** | 10.6 LTS | Оптимізовані налаштування InnoDB |
 | **Xdebug** | 3.x | Опціонально, вимкнено (несумісний з JIT) |
 | **ionCube** | Latest | Опціонально, вимкнено (несумісний з JIT) |
+
+### OcStore 2.3 (опціонально)
+
+| Компонент | Версія | Деталі |
+|-----------|--------|--------|
+| **PHP** | 7.2-FPM | Debian Buster, gd, mysqli, zip, intl, bcmath, exif |
+| **OPcache** | Без JIT | JIT недоступний в PHP 7.2 |
+| **Xdebug** | 3.1.6 | Опціонально, вимкнено |
+
+### Спільне
+
+| Компонент | Версія | Деталі |
+|-----------|--------|--------|
+| **Nginx** | Latest | SEO URLs, gzip, кешування, security headers |
+| **MariaDB** | 10.6 LTS | Оптимізовані налаштування InnoDB |
 | **phpMyAdmin** | Latest | Веб-інтерфейс для БД |
 | **FileBrowser** | Latest | Веб-файловий менеджер |
 
@@ -87,6 +108,7 @@ cd OcStore
 # 2. Налаштувати
 cp .env.example .env
 # Відредагувати .env
+# Для OcStore 2.3: змінити DOCKERFILE=Dockerfile.v2 в .env
 
 # 3. Створити docker-compose.override.yml для портів
 cat > docker-compose.override.yml << 'EOF'
@@ -263,13 +285,35 @@ docker exec ocstore-opencart-1 php -m | grep ionCube
 
 | Змінна | За замовчуванням | Опис |
 |--------|------------------|------|
+| `DOCKERFILE` | `Dockerfile` | `Dockerfile` = v3, `Dockerfile.v2` = v2.3 |
 | `DB_DATABASE` | `opencart` | Назва бази даних |
 | `DB_USERNAME` | `opencart` | Користувач БД |
 | `DB_PREFIX` | `oc_` | Префікс таблиць |
 | `ADMIN_USERNAME` | `admin` | Логін адміністратора |
 | `ADMIN_EMAIL` | `admin@example.com` | Email адміністратора |
-| `IONCUBE_ENABLED` | `0` | `1` = увімкнути ionCube (вимкне JIT) |
-| `XDEBUG_ENABLED` | `0` | `1` = увімкнути Xdebug (вимкне JIT) |
+| `IONCUBE_ENABLED` | `0` | `1` = увімкнути ionCube (вимкне JIT, тільки v3) |
+| `XDEBUG_ENABLED` | `0` | `1` = увімкнути Xdebug (вимкне JIT у v3) |
+
+---
+
+## Вибір версії OcStore
+
+Версія обирається через змінну `DOCKERFILE` у файлі `.env`:
+
+| Значення | Версія | PHP | Опис |
+|----------|--------|-----|------|
+| `Dockerfile` (за замовчуванням) | OcStore 3.x | PHP 8.1 | JIT, ionCube, Xdebug |
+| `Dockerfile.v2` | OcStore 2.3 | PHP 7.2 | OPcache, Xdebug |
+
+```env
+# .env — для OcStore 3.x (за замовчуванням)
+DOCKERFILE=Dockerfile
+
+# .env — для OcStore 2.3
+DOCKERFILE=Dockerfile.v2
+```
+
+> **Важливо:** При зміні версії потрібно видалити volumes (`docker compose down -v`) та зробити rebuild (`docker compose up -d --build`).
 
 ---
 
@@ -277,17 +321,20 @@ docker exec ocstore-opencart-1 php -m | grep ionCube
 
 ```
 OcStore/
-├── Dockerfile                  # PHP 8.1-FPM (Debian) + Nginx + Xdebug + ionCube
-├── docker-compose.yml          # Production конфігурація
+├── Dockerfile                  # v3: PHP 8.1-FPM + Nginx + Xdebug + ionCube
+├── Dockerfile.v2               # v2.3: PHP 7.2-FPM + Nginx + Xdebug
+├── docker-compose.yml          # Production конфігурація (версія через DOCKERFILE)
 ├── .env.example                # Приклад змінних
 └── docker/
-    ├── nginx/default.conf      # Nginx: SEO URLs, кеш, безпека
+    ├── nginx/default.conf      # Nginx: SEO URLs, кеш, безпека (спільний)
     ├── php/
-    │   ├── php.ini             # PHP: OPcache, JIT, Xdebug
-    │   └── php-fpm.conf        # PHP-FPM pool
-    ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache
+    │   ├── php.ini             # v3: OPcache, JIT, Xdebug
+    │   ├── php.v2.ini          # v2.3: OPcache (без JIT), Xdebug
+    │   └── php-fpm.conf        # PHP-FPM pool (спільний)
+    ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache (спільний)
     ├── supervisor/supervisord.conf
-    └── entrypoint.sh           # Автоматична інсталяція + Xdebug toggle
+    ├── entrypoint.sh           # v3: автоінсталяція + Xdebug/ionCube toggle
+    └── entrypoint.v2.sh        # v2.3: автоінсталяція + Xdebug toggle
 ```
 
 ---
@@ -317,9 +364,9 @@ OcStore/
 
 ## Що відбувається при деплої
 
+**OcStore 3.x:**
 ```
 [0/5] First deploy detected          → Копіювання OpenCart у volume
-      (або: Existing installation detected - preserving files)
 [INFO] ionCube Loader DISABLED (JIT enabled for performance)
 [INFO] Xdebug DISABLED (JIT enabled for performance)
 [1/5] Migrating storage files...     → Копіювання в /var/www/storage/
@@ -330,6 +377,8 @@ OcStore/
 [4/5] Configuring storage path...    → Оновлення config.php
 [5/5] Security cleanup...            → Видалення /install/
 ```
+
+**OcStore 2.3:** Аналогічний процес, але без ionCube toggle та JIT.
 
 **При redeploy:** всі файли (модулі, теми, зображення) зберігаються у Docker volumes. Перевстановлення не відбувається.
 
@@ -490,6 +539,17 @@ XDEBUG_ENABLED=0
 - База даних — окремий volume
 
 Модулі та налаштування не втрачаються при редеплої.
+
+### Зміна версії OcStore (v3 ↔ v2.3)
+
+При переключенні між версіями потрібно видалити volumes:
+```bash
+docker compose down -v
+# Змінити DOCKERFILE в .env
+docker compose up -d --build
+```
+
+> **Увага:** `docker compose down -v` видалить всі дані (БД, файли, модулі).
 
 ---
 
