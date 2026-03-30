@@ -13,18 +13,19 @@
 - **OcStore 3.x** (v3.0.4.1) — PHP 8.1, OPcache+JIT, ionCube, Xdebug *(за замовчуванням)*
 - **OcStore 2.3** (v2.3.0.2.4) — PHP 7.2, OPcache, Xdebug *(опціонально)*
 
-Задеплоїв → Працює. Без ручних налаштувань.
+Задеплоїв &rarr; Працює. Без ручних налаштувань.
 
 ## Можливості
 
 | Функція | Опис |
 |---------|------|
 | **Дві версії OcStore** | v3.0.4.1 (PHP 8.1) та v2.3.0.2.4 (PHP 7.2) |
+| **Паралельний запуск** | Обидві версії на одному сервері без конфліктів |
 | **Автоматична інсталяція** | Без веб-візарда, все автоматично |
 | **Безпечний storage** | Директорія storage поза webroot |
 | **Збереження даних** | Модулі, теми, зображення зберігаються при redeploy |
 | **Environment Variables** | Всі налаштування через змінні оточення |
-| **Coolify Ready** | Traefik labels, health checks |
+| **Coolify Ready** | Traefik labels, health checks, SSL termination |
 | **JIT продуктивність** | OPcache + Tracing JIT увімкнено (v3) |
 | **Dev інструменти** | Xdebug та ionCube (v3) опціонально |
 
@@ -51,10 +52,26 @@
 
 | Компонент | Версія | Деталі |
 |-----------|--------|--------|
-| **Nginx** | Latest | SEO URLs, gzip, кешування, security headers |
+| **Nginx** | Latest | SEO URLs, gzip, кешування, security headers, SSL termination |
 | **MariaDB** | 10.6 LTS | Оптимізовані налаштування InnoDB |
 | **phpMyAdmin** | Latest | Веб-інтерфейс для БД |
 | **FileBrowser** | Latest | Веб-файловий менеджер |
+
+---
+
+## Вибір версії OcStore
+
+Кожна версія має **окремий docker-compose файл** з унікальними іменами сервісів:
+
+| | OcStore 3.x | OcStore 2.3 |
+|---|---|---|
+| **Compose файл** | `docker-compose.yml` | `docker-compose.v2.yml` |
+| **Dockerfile** | `Dockerfile` | `Dockerfile.v2` |
+| **Сервіси** | `opencart`, `mariadb`, `phpmyadmin`, `filebrowser` | `opencartv2`, `mariadbv2`, `phpmyadminv2`, `filebrowserv2` |
+| **Volumes** | `opencart_html`, `opencart_storage` | `opencartv2_html`, `opencartv2_storage` |
+| **Traefik** | `traefik.http.services.opencart` | `traefik.http.services.opencartv2` |
+
+> **Чому окремі файли?** Якщо обидві версії працюють на одному сервері, однакові імена сервісів спричиняють конфлікти маршрутизації Traefik. Окремі compose файли повністю ізолюють інстанси.
 
 ---
 
@@ -62,13 +79,13 @@
 
 ### Деплой на Coolify
 
-**1. Створити Application**
+#### OcStore 3.x
 
-**Resources** → **Add New** → **Private Repository (GitHub)**
+**1.** Resources &rarr; Add New &rarr; Private Repository (GitHub)
 
-**2. Вибрати Build Pack:** Docker Compose
+**2.** Build Pack: **Docker Compose**, файл: `docker-compose.yml`
 
-**3. Додати Environment Variables**
+**3.** Environment Variables:
 
 ```env
 DB_DATABASE=opencart
@@ -81,9 +98,7 @@ ADMIN_PASSWORD=YourSecureAdminPassword
 ADMIN_EMAIL=admin@yourdomain.com
 ```
 
-> **Важливо:** Не використовуйте спеціальні символи `$ # ! @ \` в паролях — вони інтерпретуються shell і обрізаються.
-
-**4. Налаштувати домени**
+**4.** Домени:
 
 | Сервіс | Домен |
 |--------|-------|
@@ -91,10 +106,39 @@ ADMIN_EMAIL=admin@yourdomain.com
 | phpmyadmin | pma.yourdomain.com |
 | filebrowser | files.yourdomain.com |
 
-**5. Deploy** → Натиснути **Deploy**. Через 3-5 хвилин:
-- Магазин: `https://shop.yourdomain.com`
-- Адмінка: `https://shop.yourdomain.com/admin`
-- FileBrowser: `https://files.yourdomain.com` (пароль в логах)
+**5.** Deploy &rarr; через 3-5 хвилин все працює.
+
+#### OcStore 2.3
+
+**1.** Resources &rarr; Add New &rarr; Private Repository (GitHub)
+
+**2.** Build Pack: **Docker Compose**, файл: `docker-compose.v2.yml`
+
+**3.** Environment Variables (ті ж самі, але з іншим URL та БД):
+
+```env
+DB_DATABASE=opencartv2
+DB_USERNAME=opencartv2
+DB_PASSWORD=YourSecureDbPassword
+DB_ROOT_PASSWORD=YourSecureRootPassword
+DB_EXTERNAL_PORT=3308
+OPENCART_URL=https://shop2.yourdomain.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=YourSecureAdminPassword
+ADMIN_EMAIL=admin@yourdomain.com
+```
+
+**4.** Домени:
+
+| Сервіс | Домен |
+|--------|-------|
+| opencartv2 | shop2.yourdomain.com |
+| phpmyadminv2 | pma2.yourdomain.com |
+| filebrowserv2 | files2.yourdomain.com |
+
+**5.** Deploy
+
+> **Важливо:** Не використовуйте спеціальні символи `$ # ! @ \` в паролях — вони інтерпретуються shell і обрізаються.
 
 ---
 
@@ -108,7 +152,6 @@ cd OcStore
 # 2. Налаштувати
 cp .env.example .env
 # Відредагувати .env
-# Для OcStore 2.3: змінити DOCKERFILE=Dockerfile.v2 в .env
 
 # 3. Створити docker-compose.override.yml для портів
 cat > docker-compose.override.yml << 'EOF'
@@ -124,8 +167,11 @@ services:
       - "8082:8080"
 EOF
 
-# 4. Запустити
+# 4. Запустити (OcStore 3.x)
 docker compose up -d --build
+
+# 4. Або запустити (OcStore 2.3)
+docker compose -f docker-compose.v2.yml up -d --build
 ```
 
 **Посилання:**
@@ -145,6 +191,30 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ADMIN_EMAIL=admin@localhost.com
 XDEBUG_ENABLED=1
+```
+
+---
+
+## Структура проекту
+
+```
+OcStore/
+├── Dockerfile                  # v3: PHP 8.1-FPM + Nginx + Xdebug + ionCube
+├── Dockerfile.v2               # v2.3: PHP 7.2-FPM + Nginx + Xdebug
+├── docker-compose.yml          # v3: сервіси opencart, mariadb, etc.
+├── docker-compose.v2.yml       # v2.3: сервіси opencartv2, mariadbv2, etc.
+├── .env.example                # Приклад змінних
+└── docker/
+    ├── nginx/default.conf      # Nginx: SEO URLs, кеш, SSL params (спільний)
+    ├── php/
+    │   ├── php.ini             # v3: OPcache, JIT, Xdebug
+    │   ├── php.v2.ini          # v2.3: OPcache (без JIT), Xdebug
+    │   ├── php-fpm.conf        # v3: PHP-FPM pool
+    │   └── php-fpm.v2.conf     # v2.3: PHP-FPM pool (PHP 7.2 compatible)
+    ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache (спільний)
+    ├── supervisor/supervisord.conf
+    ├── entrypoint.sh           # v3: автоінсталяція + Xdebug/ionCube toggle
+    └── entrypoint.v2.sh        # v2.3: автоінсталяція + Xdebug toggle
 ```
 
 ---
@@ -170,7 +240,7 @@ FileBrowser надає веб-інтерфейс для управління ф�
 User 'admin' initialized with randomly generated password: xPAY_bedXiKZhTS9
 ```
 
-В Coolify: **Logs** → **filebrowser**
+В Coolify: **Logs** &rarr; **filebrowser**
 
 ### Структура файлів
 
@@ -197,7 +267,7 @@ User 'admin' initialized with randomly generated password: xPAY_bedXiKZhTS9
 
 ## JIT, ionCube та Xdebug
 
-**JIT, ionCube та Xdebug несумісні** — вони не можуть працювати одночасно. Тому ionCube та Xdebug **вимкнені за замовчуванням** для максимальної продуктивності з JIT.
+**Тільки OcStore 3.x.** JIT, ionCube та Xdebug несумісні — вони не можуть працювати одночасно. Тому ionCube та Xdebug **вимкнені за замовчуванням** для максимальної продуктивності з JIT.
 
 | Режим | IONCUBE_ENABLED | XDEBUG_ENABLED | JIT | Використання |
 |-------|-----------------|----------------|-----|--------------|
@@ -205,14 +275,7 @@ User 'admin' initialized with randomly generated password: xPAY_bedXiKZhTS9
 | **ionCube** | `1` | `0` | Off | Закодовані PHP модулі |
 | **Development** | `0` | `1` | Off | Локальна розробка з VS Code |
 
-### Увімкнути ionCube для закодованих модулів
-
-Додайте в `.env`:
-```env
-IONCUBE_ENABLED=1
-```
-
-> **Увага:** ionCube вимкне JIT. Використовуйте тільки якщо у вас є закодовані PHP модулі.
+**OcStore 2.3:** JIT недоступний (PHP 7.2). Xdebug працює аналогічно. ionCube не підтримується.
 
 ### Увімкнути Xdebug для розробки
 
@@ -220,8 +283,6 @@ IONCUBE_ENABLED=1
 ```env
 XDEBUG_ENABLED=1
 ```
-
-Або в Coolify Environment Variables (тільки якщо потрібна відладка на сервері).
 
 ### Налаштування VS Code
 
@@ -244,30 +305,6 @@ XDEBUG_ENABLED=1
 }
 ```
 
-**Параметри Xdebug:**
-- Mode: `debug,develop`
-- Port: `9003`
-- IDE Key: `VSCODE`
-- Host: `host.docker.internal`
-
----
-
-## ionCube Loader
-
-ionCube Loader **вимкнений за замовчуванням** для сумісності з JIT. Увімкніть його тільки якщо у вас є закодовані PHP модулі.
-
-Увімкнути:
-```env
-IONCUBE_ENABLED=1
-```
-
-Перевірити роботу (після увімкнення):
-```bash
-docker exec ocstore-opencart-1 php -m | grep ionCube
-```
-
-> **Важливо:** ionCube та JIT несумісні. Якщо вам потрібен JIT для максимальної продуктивності — не вмикайте ionCube.
-
 ---
 
 ## Environment Variables
@@ -285,57 +322,14 @@ docker exec ocstore-opencart-1 php -m | grep ionCube
 
 | Змінна | За замовчуванням | Опис |
 |--------|------------------|------|
-| `DOCKERFILE` | `Dockerfile` | `Dockerfile` = v3, `Dockerfile.v2` = v2.3 |
 | `DB_DATABASE` | `opencart` | Назва бази даних |
 | `DB_USERNAME` | `opencart` | Користувач БД |
 | `DB_PREFIX` | `oc_` | Префікс таблиць |
+| `DB_EXTERNAL_PORT` | `3306` | Зовнішній порт MariaDB |
 | `ADMIN_USERNAME` | `admin` | Логін адміністратора |
 | `ADMIN_EMAIL` | `admin@example.com` | Email адміністратора |
 | `IONCUBE_ENABLED` | `0` | `1` = увімкнути ionCube (вимкне JIT, тільки v3) |
 | `XDEBUG_ENABLED` | `0` | `1` = увімкнути Xdebug (вимкне JIT у v3) |
-
----
-
-## Вибір версії OcStore
-
-Версія обирається через змінну `DOCKERFILE` у файлі `.env`:
-
-| Значення | Версія | PHP | Опис |
-|----------|--------|-----|------|
-| `Dockerfile` (за замовчуванням) | OcStore 3.x | PHP 8.1 | JIT, ionCube, Xdebug |
-| `Dockerfile.v2` | OcStore 2.3 | PHP 7.2 | OPcache, Xdebug |
-
-```env
-# .env — для OcStore 3.x (за замовчуванням)
-DOCKERFILE=Dockerfile
-
-# .env — для OcStore 2.3
-DOCKERFILE=Dockerfile.v2
-```
-
-> **Важливо:** При зміні версії потрібно видалити volumes (`docker compose down -v`) та зробити rebuild (`docker compose up -d --build`).
-
----
-
-## Структура проекту
-
-```
-OcStore/
-├── Dockerfile                  # v3: PHP 8.1-FPM + Nginx + Xdebug + ionCube
-├── Dockerfile.v2               # v2.3: PHP 7.2-FPM + Nginx + Xdebug
-├── docker-compose.yml          # Production конфігурація (версія через DOCKERFILE)
-├── .env.example                # Приклад змінних
-└── docker/
-    ├── nginx/default.conf      # Nginx: SEO URLs, кеш, безпека (спільний)
-    ├── php/
-    │   ├── php.ini             # v3: OPcache, JIT, Xdebug
-    │   ├── php.v2.ini          # v2.3: OPcache (без JIT), Xdebug
-    │   └── php-fpm.conf        # PHP-FPM pool (спільний)
-    ├── mariadb/my.cnf          # MariaDB: InnoDB, query cache (спільний)
-    ├── supervisor/supervisord.conf
-    ├── entrypoint.sh           # v3: автоінсталяція + Xdebug/ionCube toggle
-    └── entrypoint.v2.sh        # v2.3: автоінсталяція + Xdebug toggle
-```
 
 ---
 
@@ -350,15 +344,7 @@ OcStore/
 | `mariadb_data` | `/var/lib/mysql` | База даних |
 | `filebrowser_data` | `/config` | Налаштування та БД FileBrowser |
 
-**Це означає:**
-- ✅ Встановлені модулі зберігаються
-- ✅ Завантажені зображення зберігаються
-- ✅ Теми та кастомізації зберігаються
-- ✅ База даних зберігається
-- ✅ Налаштування OpenCart зберігаються
-
-**Перший деплой:** OpenCart копіюється з образу в volume.
-**Наступні деплої:** Файли у volume не перезаписуються.
+> Для OcStore 2.3 volumes мають суфікс `v2`: `opencartv2_html`, `opencartv2_storage`, etc.
 
 ---
 
@@ -373,7 +359,7 @@ OcStore/
 [2/5] Waiting for database...        → Очікування MariaDB
 [3/5] Checking OpenCart installation...
       ├── Database has existing tables → Regenerate config.php
-      └── Fresh database → Run CLI installer
+      └── Fresh database → Run CLI installer → Regenerate config.php
 [4/5] Configuring storage path...    → Оновлення config.php
 [5/5] Security cleanup...            → Видалення /install/
 ```
@@ -382,49 +368,9 @@ OcStore/
 
 **При redeploy:** всі файли (модулі, теми, зображення) зберігаються у Docker volumes. Перевстановлення не відбувається.
 
-Логи видно в Coolify → **Logs** → `opencart`
-
----
-
-## PHP Налаштування
-
-### OPcache + JIT
-
-| Параметр | Значення | Опис |
-|----------|----------|------|
-| `opcache.enable` | 1 | OPcache увімкнено |
-| `opcache.jit` | 1255 | Tracing JIT (найшвидший) |
-| `opcache.jit_buffer_size` | 128M | Буфер для JIT |
-| `opcache.memory_consumption` | 256M | Пам'ять для кешу |
-
-### Ліміти
-
-| Параметр | Значення |
-|----------|----------|
-| `memory_limit` | 512M |
-| `max_execution_time` | 300s |
-| `upload_max_filesize` | 100M |
-
-### MariaDB
-
-| Параметр | Значення |
-|----------|----------|
-| `innodb_buffer_pool_size` | 1G |
-| `query_cache_size` | 64M |
-| `max_connections` | 150 |
-
-### Nginx
-
-- Gzip стиснення
-- Статичний кеш 1 рік
-- Security headers
-- SEO URLs
-
 ---
 
 ## Безпека
-
-### Включено
 
 - Storage поза webroot (`/var/www/storage/`)
 - Заборонено виконання PHP в `/image/` та `/storage/`
@@ -432,59 +378,29 @@ OcStore/
 - Security headers (X-Frame-Options, X-Content-Type-Options)
 - Небезпечні PHP функції вимкнені
 - Xdebug вимкнено за замовчуванням
-
-### Рекомендації для Production
-
-1. Не вмикайте `XDEBUG_ENABLED=1` на продакшні
-2. Використовуйте надійні паролі (12+ символів)
-3. Обмежте доступ до phpMyAdmin
-4. Регулярно оновлюйте Docker образи
+- SSL termination підтримка для reverse proxy (Coolify/Traefik)
 
 ---
 
 ## Команди
 
 ```bash
-# Запуск
-docker compose up -d
+# OcStore 3.x
+docker compose up -d                    # Запуск
+docker compose logs -f opencart         # Логи
+docker compose down                     # Зупинка
+docker compose down -v                  # Повне видалення з даними
+docker compose up -d --build            # Перезбірка
 
-# Перегляд логів
-docker compose logs -f opencart
+# OcStore 2.3
+docker compose -f docker-compose.v2.yml up -d --build
+docker compose -f docker-compose.v2.yml logs -f opencartv2
+docker compose -f docker-compose.v2.yml down -v
 
-# Зупинка
-docker compose down
-
-# Повне видалення (з даними)
-docker compose down -v
-
-# Перезбірка
-docker compose up -d --build
-
-# Перевірити PHP модулі
-docker exec ocstore-opencart-1 php -m
-
-# Перевірити JIT статус
-docker exec ocstore-opencart-1 php -r "var_dump(opcache_get_status()['jit']);"
-
-# Перевірити Xdebug
-docker exec ocstore-opencart-1 php -v | grep -i xdebug
-```
-
----
-
-## Бенчмарк
-
-Перевірити продуктивність сервера:
-
-```bash
-# TTFB (Time To First Byte)
-curl -w "TTFB: %{time_starttransfer}s\nTotal: %{time_total}s\n" -o /dev/null -s https://your-domain.com/
-
-# PHP benchmark
-docker exec ocstore-opencart-1 php -r "\$s=microtime(1);for(\$i=0;\$i<1000000;\$i++){}echo 'Loop 1M: '.round((microtime(1)-\$s)*1000).'ms'.PHP_EOL;"
-
-# Disk I/O
-docker exec ocstore-opencart-1 dd if=/dev/zero of=/tmp/test bs=1M count=100 oflag=direct 2>&1 | tail -1
+# Діагностика
+docker exec ocstore-opencart-1 php -m               # PHP модулі
+docker exec ocstore-opencart-1 php -r "var_dump(opcache_get_status()['jit']);"  # JIT статус
+docker exec ocstore-opencart-1 php -v | grep -i xdebug  # Xdebug статус
 ```
 
 ---
@@ -497,59 +413,23 @@ docker exec ocstore-opencart-1 dd if=/dev/zero of=/tmp/test bs=1M count=100 ofla
 
 **Рішення:** Використовуйте паролі тільки з літер і цифр
 
-### Білий екран / 500 помилка
+### jQuery / CORS помилки в адмінці
 
-**Причина:** Неправильний шлях storage або помилка PHP
+**Причина:** Reverse proxy (Coolify/Traefik) терміналить SSL, PHP не знає що з'єднання HTTPS
 
-**Рішення:** Перевірте логи `docker compose logs opencart`
+**Рішення:** Вже вирішено — nginx передає `fastcgi_param HTTPS on` та `SERVER_PORT 443`
 
-### phpMyAdmin не працює
+### Сайти перемішуються (v3 показує v2.3 і навпаки)
 
-**Логін:** користувач `opencart` або `root` з відповідними паролями
+**Причина:** Обидва інстанси використовують однакові Traefik service names
 
-### JIT показує Disabled
-
-**Причина:** Увімкнений ionCube або Xdebug (несумісні з JIT)
-
-**Рішення:** Переконайтесь що обидва вимкнені:
-```env
-IONCUBE_ENABLED=0
-XDEBUG_ENABLED=0
-```
-
-Або просто не вказуйте ці змінні (за замовчуванням = 0)
-
-### Xdebug не підключається
-
-1. Перевірте що `XDEBUG_ENABLED=1` в `.env`
-2. Перевірте що VS Code слухає порт 9003
-3. Перевірте `pathMappings` в `launch.json`
+**Рішення:** Використовуйте `docker-compose.v2.yml` для OcStore 2.3 — сервіси мають унікальні імена
 
 ### Health check failing (Coolify)
 
 **Причина:** Контейнер ще запускається (до 5 хвилин)
 
-**Рішення:** Зачекайте або перевірте логи в Coolify → Logs → opencart
-
-### Дані втрачаються при redeploy
-
-**Це виправлено.** Всі дані зберігаються в Docker volumes:
-- `/var/www/html` — модулі, теми, код
-- `/var/www/storage` — кеш, сесії, завантаження
-- База даних — окремий volume
-
-Модулі та налаштування не втрачаються при редеплої.
-
-### Зміна версії OcStore (v3 ↔ v2.3)
-
-При переключенні між версіями потрібно видалити volumes:
-```bash
-docker compose down -v
-# Змінити DOCKERFILE в .env
-docker compose up -d --build
-```
-
-> **Увага:** `docker compose down -v` видалить всі дані (БД, файли, модулі).
+**Рішення:** Зачекайте або перевірте логи в Coolify &rarr; Logs
 
 ---
 
