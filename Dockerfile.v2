@@ -82,7 +82,7 @@ RUN rm -f /etc/nginx/sites-enabled/default
 # Copy configuration files
 COPY docker/nginx/default.conf /etc/nginx/sites-enabled/default
 COPY docker/php/php.v2.ini /usr/local/etc/php/conf.d/custom.ini
-COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php/php-fpm.v2.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Download and extract OcStore 2.3 to distribution directory

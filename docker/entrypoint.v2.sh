@@ -114,7 +114,8 @@ sleep 3
 # --- Check if OpenCart is already installed (by checking database tables) ---
 check_database_installed() {
     TABLES=$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" \
-        -e "SHOW TABLES LIKE '${DB_PREFIX}setting';" 2>/dev/null | grep -c "${DB_PREFIX}setting" || echo "0")
+        -e "SHOW TABLES LIKE '${DB_PREFIX}setting';" 2>/dev/null | grep -c "${DB_PREFIX}setting" || true)
+    TABLES=${TABLES:-0}
 
     if [ "$TABLES" -gt 0 ]; then
         return 0

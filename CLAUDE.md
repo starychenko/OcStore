@@ -89,7 +89,8 @@ docker exec -it ocstore-opencart-1 bash
 | `docker/nginx/default.conf` | SEO URLs, caching, security headers (shared) |
 | `docker/php/php.ini` | v3: OPcache, JIT, Xdebug settings |
 | `docker/php/php.v2.ini` | v2.3: OPcache (no JIT), Xdebug settings |
-| `docker/php/php-fpm.conf` | Worker pool configuration (shared) |
+| `docker/php/php-fpm.conf` | v3: Worker pool configuration |
+| `docker/php/php-fpm.v2.conf` | v2.3: Worker pool configuration (no decorate_workers_output) |
 | `docker/mariadb/my.cnf` | InnoDB optimization (shared) |
 
 ## Environment Variables
