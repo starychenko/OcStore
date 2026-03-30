@@ -1,15 +1,15 @@
-# Docker Compose for OpenCart 3 (OcStore) - Optimized for Coolify
+# Docker Compose for OcStore 2.3 - Optimized for Coolify
 # Deploy via Coolify from private GitHub repository
-# For OcStore 2.3, use docker-compose.v2.yml instead
+# Service names differ from docker-compose.yml to avoid Traefik conflicts
 
 services:
-  # OpenCart Application (PHP-FPM + Nginx)
-  opencart:
+  # OcStore 2.3 Application (PHP 7.2-FPM + Nginx)
+  opencartv2:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.v2
     environment:
-      - DB_HOST=mariadb
+      - DB_HOST=mariadbv2
       - DB_PORT=3306
       - DB_DATABASE=${DB_DATABASE:-opencart}
       - DB_USERNAME=${DB_USERNAME:-opencart}
@@ -19,17 +19,14 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
-      # ionCube disabled by default for JIT performance
-      # Set to 1 only if you need ionCube-encoded modules (disables JIT)
-      - IONCUBE_ENABLED=${IONCUBE_ENABLED:-0}
-      # Xdebug disabled by default for JIT performance
-      # Set to 1 for development debugging (disables JIT)
+      # Xdebug disabled by default for performance
+      # Set to 1 for development debugging
       - XDEBUG_ENABLED=${XDEBUG_ENABLED:-0}
     volumes:
-      - opencart_storage:/var/www/storage
-      - opencart_html:/var/www/html
+      - opencartv2_storage:/var/www/storage
+      - opencartv2_html:/var/www/html
     depends_on:
-      mariadb:
+      mariadbv2:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -40,14 +37,14 @@ services:
       start_period: 300s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.opencart.loadbalancer.server.port=80"
+      - "traefik.http.services.opencartv2.loadbalancer.server.port=80"
 
   # MariaDB Database
-  mariadb:
+  mariadbv2:
     image: mariadb:10.6
-    hostname: mariadb
+    hostname: mariadbv2
     ports:
-      - "${DB_EXTERNAL_PORT:-3306}:3306"  # External access (set DB_EXTERNAL_PORT in .env)
+      - "${DB_EXTERNAL_PORT:-3306}:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_DATABASE:-opencart}
@@ -55,7 +52,7 @@ services:
       - MYSQL_PASSWORD=${DB_PASSWORD}
       - MARIADB_AUTO_UPGRADE=1
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mariadbv2_data:/var/lib/mysql
       - ./docker/mariadb/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
     restart: unless-stopped
     healthcheck:
@@ -64,18 +61,15 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    # Internal service - not exposed to internet
 
   # FileBrowser (Web File Manager)
-  # Login: admin / password from logs (randomly generated on first start)
-  # Using hurlenko/filebrowser - supports env vars configuration
-  filebrowser:
+  filebrowserv2:
     image: hurlenko/filebrowser
-    user: "33:33"  # www-data - files will have correct permissions for PHP
+    user: "33:33"
     volumes:
-      - opencart_html:/data/html
-      - opencart_storage:/data/storage
-      - filebrowser_data:/config
+      - opencartv2_html:/data/html
+      - opencartv2_storage:/data/storage
+      - filebrowserv2_data:/config
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8080"]
@@ -85,31 +79,31 @@ services:
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.filebrowser.loadbalancer.server.port=8080"
+      - "traefik.http.services.filebrowserv2.loadbalancer.server.port=8080"
 
   # phpMyAdmin (Database Management)
-  phpmyadmin:
+  phpmyadminv2:
     image: phpmyadmin/phpmyadmin:latest
     environment:
-      - PMA_HOST=mariadb
+      - PMA_HOST=mariadbv2
       - PMA_PORT=3306
       - UPLOAD_LIMIT=100M
       - MEMORY_LIMIT=512M
       - MAX_EXECUTION_TIME=600
     depends_on:
-      mariadb:
+      mariadbv2:
         condition: service_healthy
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+      - "traefik.http.services.phpmyadminv2.loadbalancer.server.port=80"
 
 volumes:
-  opencart_storage:
+  opencartv2_storage:
     driver: local
-  opencart_html:
+  opencartv2_html:
     driver: local
-  mariadb_data:
+  mariadbv2_data:
     driver: local
-  filebrowser_data:
+  filebrowserv2_data:
     driver: local

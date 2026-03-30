@@ -12,7 +12,7 @@ echo "Date: $(date)"
 echo ""
 
 # --- Configuration ---
-DB_HOST="${DB_HOST:-mariadb}"
+DB_HOST="${DB_HOST:-mariadbv2}"
 DB_PORT="${DB_PORT:-3306}"
 DB_DATABASE="${DB_DATABASE:-opencart}"
 DB_USERNAME="${DB_USERNAME:-opencart}"
